@@ -59,15 +59,23 @@ pub(crate) fn touchpad(width: i32, height: i32) -> io::Result<VirtualDevice> {
         ))?
         .with_absolute_axis(&UinputAbsSetup::new(
             AbsoluteAxisType::ABS_MT_TRACKING_ID,
-            AbsInfo::new(0, 0, i32::MAX, 0, 0, 100),
+            AbsInfo::new(0, 0, 65535, 0, 0, 100),
         ))?
         .with_absolute_axis(&UinputAbsSetup::new(
             AbsoluteAxisType::ABS_MT_POSITION_X,
-            AbsInfo::new(0, 0, height, 0, 0, 100),
+            AbsInfo::new(0, 0, width, 0, 0, 100),
         ))?
         .with_absolute_axis(&UinputAbsSetup::new(
             AbsoluteAxisType::ABS_MT_POSITION_Y,
+            AbsInfo::new(0, 0, height, 0, 0, 100),
+        ))?
+        .with_absolute_axis(&UinputAbsSetup::new(
+            AbsoluteAxisType::ABS_X,
             AbsInfo::new(0, 0, width, 0, 0, 100),
+        ))?
+        .with_absolute_axis(&UinputAbsSetup::new(
+            AbsoluteAxisType::ABS_Y,
+            AbsInfo::new(0, 0, height, 0, 0, 100),
         ))?
         .input_id(InputId::new(BusType::BUS_USB, 0x5120, 0x0002, 0x1))
         .build()
