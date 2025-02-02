@@ -15,10 +15,6 @@ use nusb::{
 };
 use parser::parse;
 
-struct Finger {
-    tracking_id: i32,
-}
-
 pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
     std::thread::sleep(Duration::from_millis(2200));
     println!("attempting to open the device...");
@@ -54,8 +50,6 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
 
                         let mut touchetab = graphic_tablet(width, height)?;
                         let mut touchepad = touchpad(width, height)?;
-
-                        let mut active_ids: Vec<i32> = vec![];
 
                         std::thread::sleep(Duration::from_millis(1000));
 
