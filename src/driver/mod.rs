@@ -219,7 +219,25 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                                         ),
                                                     ]);
                                                 }
-                                                3 => {}
+                                                3 => {
+                                                    trackpad_events.append(&mut vec![
+                                                        InputEvent::new(
+                                                            EventType::KEY,
+                                                            Key::BTN_TOUCH.0,
+                                                            1,
+                                                        ),
+                                                        InputEvent::new(
+                                                            EventType::KEY,
+                                                            Key::BTN_TOOL_DOUBLETAP.0,
+                                                            0,
+                                                        ),
+                                                        InputEvent::new(
+                                                            EventType::KEY,
+                                                            Key::BTN_TOOL_TRIPLETAP.0,
+                                                            1,
+                                                        ),
+                                                    ]);
+                                                }
                                                 4 => {}
                                                 5 => {}
                                                 _ => {}
