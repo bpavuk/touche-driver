@@ -16,11 +16,14 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+	rustToolchain = pkgs.pkgsBuildHost.rust-bin.stable.latest.default;
+	nativeBuildInputs = with pkgs; [ rustToolchain pkg-config gh ];
+	buildInputs = with pkgs; [ libudev-zero ];
       in
       with pkgs;
       {
         devShells.default = mkShell {
-          buildInputs = [ rust-bin.stable.latest.default ];
+	  inherit buildInputs nativeBuildInputs;
         };
       }
     );
