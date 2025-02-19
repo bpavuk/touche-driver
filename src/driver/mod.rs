@@ -37,21 +37,14 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                 let res = block_on(interface.bulk_in(endpoint.address(), buf)).into_result();
 
                 match res {
-                    Ok(res) => {
-                        println!(
-                            "{}",
-                            String::from_utf8(res.clone())
-                                .unwrap_or("ENCODING FAILURE".to_string())
-                        );
-                        let res = parse(&res);
-                        let header = res.first().unwrap();
-                        let height = header[1].parse::<i32>().unwrap();
-                        let width = header[0].parse::<i32>().unwrap();
+                    Ok(_) => { // TODO: there is no need in nested match
+                        let height = 4096;
+                        let width = 4096;
 
                         let mut touchetab = graphic_tablet(width, height)?;
                         let mut touchepad = touchpad(width, height)?;
 
-                        std::thread::sleep(Duration::from_millis(1000));
+                        std::thread::sleep(Duration::from_millis(30));
 
                         loop {
                             let buf = RequestBuffer::new(16384);
@@ -65,20 +58,16 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                         String::from_utf8(res.clone())
                                             .unwrap_or("ENCODING FAILURE".to_string())
                                     );
-                                    let info_string = String::from_utf8(res).unwrap();
-                                    let events: Vec<Vec<&str>> = info_string
-                                        .split("\n")
-                                        .map(|it| it.split("\t").collect::<Vec<&str>>())
-                                        .collect();
-                                    let input_type = events[1][0];
+                                    let events: Vec<Vec<String>> = parse(&res);
+                                    let input_type = events[0][0].as_str();
 
                                     match input_type {
                                         // using stylus events
                                         "S" => {
-                                            let x = events[1][1].parse::<f32>().unwrap();
-                                            let y = events[1][2].parse::<f32>().unwrap();
+                                            let x = events[0][1].parse::<f32>().unwrap();
+                                            let y = events[0][2].parse::<f32>().unwrap();
 
-                                            let pressed = events[1][3].parse::<i32>().unwrap();
+                                            let pressed = events[0][3].parse::<i32>().unwrap();
 
                                             let mut tablet_events: Vec<InputEvent> = vec![
                                                 InputEvent::new(
@@ -103,7 +92,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                                 ),
                                             ];
                                             let pressure = if pressed == 1 {
-                                                events[1][4].parse::<f32>().unwrap_or(0_f32)
+                                                events[0][4].parse::<f32>().unwrap_or(0_f32)
                                                     * 4096_f32
                                             } else {
                                                 0_f32
@@ -120,7 +109,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                         "F" => {
                                             let mut trackpad_events: Vec<InputEvent> = vec![];
 
-                                            for event in &events[1..] {
+                                            for event in &events {
                                                 // setting ids, coords
                                                 let x = event[1].parse::<f32>().unwrap() as i32;
                                                 let y = event[2].parse::<f32>().unwrap() as i32;
