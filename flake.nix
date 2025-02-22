@@ -24,7 +24,7 @@
 
         src = craneLib.cleanCargoSource ./.;
         nativeBuildInputs = with pkgs; [ rustToolchain pkg-config gh ];
-        buildInputs = with pkgs; [ libudev-zero ];
+        buildInputs = with pkgs; [ systemd ];
         commonArgs = {
           inherit src buildInputs nativeBuildInputs;
         };
