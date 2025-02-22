@@ -11,6 +11,7 @@ jobs:
       contents: write
     strategy:
       matrix:
+        include:
         - release_for: Linux x86_64
           os: ubuntu-latest
           target: x86_64-unknown-linux-gnu
