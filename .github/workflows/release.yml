@@ -31,7 +31,7 @@ jobs:
       - name: Build executable
         uses: houseabsolute/actions-rust-cross@v0
         with:
-          target: ${{ matrix.platform.target }}
+          target: ${{ matrix.target }}
           args: "--locked --release"
           strip: true
 
