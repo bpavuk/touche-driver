@@ -26,6 +26,7 @@ fn main() {
         .expect("FAILED TO REGISTER THE MONITOR");
 
     loop {
+        std::thread::sleep(Duration::from_millis(100));
         let devices = list_devices();
         if devices.is_err() {
             continue;
@@ -46,15 +47,18 @@ fn main() {
                             if handle.claim_interface(0).is_ok() {
                                 // AOA stage 1 - determine AOA version
                                 let data_stage_1 = get_aoa_version(&handle).unwrap_or_default();
+                                println!("getting aoa version");
                                 if !data_stage_1.first().is_some_and(|it| (1..=2).contains(it))
                                 /* require AOA v1+ */
                                 {
                                     return false;
                                 }
                                 // AOA stage 2 - introduce the driver to the Android device
+                                println!("introducing");
                                 introduce_host(&handle);
 
                                 // AOA stage 3 - make Android your accessory
+                                println!("actually making");
                                 let _ = make_aoa(&handle);
                                 let _ = handle.reset();
                                 true
@@ -67,6 +71,7 @@ fn main() {
                     })
                     .collect();
 
+                std::thread::sleep(Duration::from_millis(100));
                 if let Some(_android_device) = binding.first() {
                     println!("woah! at least one device is ready");
                     std::thread::sleep(Duration::from_millis(1));
