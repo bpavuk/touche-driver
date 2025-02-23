@@ -7,11 +7,11 @@ use std::time::Duration;
 use core::result::Result;
 use device_builder::{graphic_tablet, touchpad};
 use evdev::InputEvent;
-use evdev::{AbsoluteAxisType, EventType, Key};
+use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
 use futures_lite::{future::block_on, io};
 use nusb::{
-    transfer::{Direction, RequestBuffer},
     DeviceInfo,
+    transfer::{Direction, RequestBuffer},
 };
 use parser::parse;
 
@@ -39,7 +39,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                 let mut touchepad = touchpad(width, height)?;
 
                 std::thread::sleep(Duration::from_millis(30));
-                
+
                 println!("awaiting first touch");
                 loop {
                     let buf = RequestBuffer::new(16384);
@@ -64,27 +64,18 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                     let pressed = events[0][3].parse::<i32>().unwrap();
 
                                     let mut tablet_events: Vec<InputEvent> = vec![
-                                        InputEvent::new(EventType::KEY, Key::BTN_TOOL_PEN.0, 1),
-                                        InputEvent::new(
-                                            EventType::ABSOLUTE,
-                                            AbsoluteAxisType::ABS_X.0,
-                                            x as i32,
-                                        ),
-                                        InputEvent::new(
-                                            EventType::ABSOLUTE,
-                                            AbsoluteAxisType::ABS_Y.0,
-                                            y as i32,
-                                        ),
-                                        InputEvent::new(EventType::KEY, Key::BTN_TOUCH.0, pressed),
+                                        *KeyEvent::new(KeyCode::BTN_TOOL_PEN, 1),
+                                        *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_X, x as i32),
+                                        *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_Y, y as i32),
+                                        *KeyEvent::new(KeyCode::BTN_TOUCH, pressed),
                                     ];
                                     let pressure = if pressed == 1 {
                                         events[0][4].parse::<f32>().unwrap_or(0_f32) * 4096_f32
                                     } else {
                                         0_f32
                                     };
-                                    tablet_events.push(InputEvent::new(
-                                        EventType::ABSOLUTE,
-                                        AbsoluteAxisType::ABS_PRESSURE.0,
+                                    tablet_events.push(*AbsoluteAxisEvent::new(
+                                        AbsoluteAxisCode::ABS_PRESSURE,
                                         pressure as i32,
                                     ));
 
@@ -103,24 +94,20 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                         let mt_slot = tracking_id % 10;
 
                                         trackpad_events.append(&mut vec![
-                                            InputEvent::new(
-                                                EventType::ABSOLUTE,
-                                                AbsoluteAxisType::ABS_MT_SLOT.0,
+                                            *AbsoluteAxisEvent::new(
+                                                AbsoluteAxisCode::ABS_MT_SLOT,
                                                 mt_slot,
                                             ),
-                                            InputEvent::new(
-                                                EventType::ABSOLUTE,
-                                                AbsoluteAxisType::ABS_MT_TRACKING_ID.0,
+                                            *AbsoluteAxisEvent::new(
+                                                AbsoluteAxisCode::ABS_MT_TRACKING_ID,
                                                 if pressed { tracking_id } else { -1 },
                                             ),
-                                            InputEvent::new(
-                                                EventType::ABSOLUTE,
-                                                AbsoluteAxisType::ABS_MT_POSITION_X.0,
+                                            *AbsoluteAxisEvent::new(
+                                                AbsoluteAxisCode::ABS_MT_POSITION_X,
                                                 x,
                                             ),
-                                            InputEvent::new(
-                                                EventType::ABSOLUTE,
-                                                AbsoluteAxisType::ABS_MT_POSITION_Y.0,
+                                            *AbsoluteAxisEvent::new(
+                                                AbsoluteAxisCode::ABS_MT_POSITION_Y,
                                                 y,
                                             ),
                                         ]);
@@ -141,73 +128,29 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                     match finger_count {
                                         0 => {
                                             trackpad_events.append(&mut vec![
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOUCH.0,
-                                                    0,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_FINGER.0,
-                                                    0,
-                                                ),
+                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 0),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 0),
                                             ]);
                                         }
                                         1 => {
                                             trackpad_events.append(&mut vec![
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOUCH.0,
-                                                    1,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_FINGER.0,
-                                                    1,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_DOUBLETAP.0,
-                                                    0,
-                                                ),
+                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 1),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 0),
                                             ]);
                                         }
                                         2 => {
                                             trackpad_events.append(&mut vec![
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOUCH.0,
-                                                    1,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_FINGER.0,
-                                                    0,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_DOUBLETAP.0,
-                                                    1,
-                                                ),
+                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 0),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 1),
                                             ]);
                                         }
                                         3 => {
                                             trackpad_events.append(&mut vec![
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOUCH.0,
-                                                    1,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_DOUBLETAP.0,
-                                                    0,
-                                                ),
-                                                InputEvent::new(
-                                                    EventType::KEY,
-                                                    Key::BTN_TOOL_TRIPLETAP.0,
-                                                    1,
-                                                ),
+                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 0),
+                                                *KeyEvent::new(KeyCode::BTN_TOOL_TRIPLETAP, 1),
                                             ]);
                                         }
                                         4 => {}
