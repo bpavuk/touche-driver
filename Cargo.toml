@@ -1,11 +1,11 @@
 [package]
 name = "touche-driver"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
-futures-lite = "2.5.0"
+futures-lite = "2.6.0"
 mio = "1.0.3"
-nusb = "0.1.12"
-udev = { version = "0.9.1", features=["mio10"]}
-evdev = "0.12.2"
+nusb = "0.1.13"
+udev = { version = "0.9.3", features=["mio10"]}
+evdev = "0.13.0"
