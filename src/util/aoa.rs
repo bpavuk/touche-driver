@@ -1,8 +1,7 @@
 use futures_lite::future::block_on;
 use nusb::{
-    list_devices,
+    Device, DeviceInfo, list_devices,
     transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError},
-    Device, DeviceInfo,
 };
 
 const MANUFACTURER_NAME_ID: u16 = 0x00;
@@ -23,6 +22,7 @@ pub(crate) fn get_aoa_version(handle: &Device) -> Result<Vec<u8>, TransferError>
     };
     block_on(handle.control_in(request)).into_result()
 }
+
 fn send_str(handle: &Device, string: &str, idx: u16) -> Result<ResponseBuffer, TransferError> {
     let request = ControlOut {
         control_type: ControlType::Vendor,
@@ -36,16 +36,15 @@ fn send_str(handle: &Device, string: &str, idx: u16) -> Result<ResponseBuffer, T
     block_on(handle.control_out(request)).into_result()
 }
 
-pub(crate) fn introduce_host(handle: &Device) {
-    // define all the device information
-    let manufacturer_name = "bpavuk";
-    let model_name = "touche";
-    let description = "making your phone a touchepad and graphics tablet";
-    let version = "v0"; // TODO: change to v1 once it's done
-    let uri = "what://"; // TODO
-    let serial_number = "528491"; // have you ever watched Inception?
-
-    // hello, Android! it's touche
+pub(crate) fn introduce_host(
+    handle: &Device,
+    manufacturer_name: &str,
+    model_name: &str,
+    description: &str,
+    version: &str,
+    uri: &str,
+    serial_number: &str,
+) {
     let _ = send_str(handle, manufacturer_name, MANUFACTURER_NAME_ID);
     let _ = send_str(handle, model_name, MODEL_NAME_ID);
     let _ = send_str(handle, description, DESCRIPTION_ID);
