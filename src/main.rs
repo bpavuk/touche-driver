@@ -1,14 +1,13 @@
-mod aoa_util;
 mod driver;
-mod hex_util;
+mod util;
 
 use std::{time::Duration, vec::Vec};
 
-use aoa_util::{check_aoa, get_aoa_version, introduce_host, make_aoa};
 use driver::driver_loop;
 use mio::{Events, Interest, Poll, Token};
 use nusb::list_devices;
 use udev::MonitorBuilder;
+use util::aoa::{check_aoa, get_aoa_version, introduce_host, make_aoa};
 
 fn main() {
     let mut udev_monitor = MonitorBuilder::new()
@@ -55,7 +54,24 @@ fn main() {
                                 }
                                 // AOA stage 2 - introduce the driver to the Android device
                                 println!("introducing");
-                                introduce_host(&handle);
+
+                                let manufacturer_name = "bpavuk";
+                                let model_name = "touche";
+                                let description =
+                                    "making your phone a touchepad and graphics tablet";
+                                let version = "v0"; // TODO: change to v1 once it's done
+                                let uri = "what://"; // TODO
+                                let serial_number = "528491"; // have you ever watched Inception?
+
+                                introduce_host(
+                                    &handle,
+                                    manufacturer_name,
+                                    model_name,
+                                    description,
+                                    version,
+                                    uri,
+                                    serial_number,
+                                );
 
                                 // AOA stage 3 - make Android your accessory
                                 println!("actually making");

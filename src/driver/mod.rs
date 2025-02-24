@@ -1,10 +1,11 @@
 mod device_builder;
-mod parser;
 
 use core::f32;
+use core::result::Result;
 use std::time::Duration;
 
-use core::result::Result;
+use crate::util::parser::parse;
+
 use device_builder::{graphic_tablet, touchpad};
 use evdev::InputEvent;
 use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
@@ -13,7 +14,6 @@ use nusb::{
     DeviceInfo,
     transfer::{Direction, RequestBuffer},
 };
-use parser::parse;
 
 pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
     std::thread::sleep(Duration::from_millis(2200));
