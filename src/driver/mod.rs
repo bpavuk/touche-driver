@@ -1,4 +1,4 @@
-mod device_builder;
+mod devices;
 
 use core::f32;
 use core::result::Result;
@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::util::parser::parse;
 
-use device_builder::{graphic_tablet, touchpad};
+use devices::{graphic_tablet, touchpad};
 use evdev::InputEvent;
 use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
 use futures_lite::{future::block_on, io};
