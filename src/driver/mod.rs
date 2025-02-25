@@ -1,11 +1,12 @@
-mod device_builder;
-mod parser;
+mod devices;
 
 use core::f32;
+use core::result::Result;
 use std::time::Duration;
 
-use core::result::Result;
-use device_builder::{graphic_tablet, touchpad};
+use crate::util::parser::parse;
+
+use devices::{graphic_tablet, touchpad};
 use evdev::InputEvent;
 use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
 use futures_lite::{future::block_on, io};
@@ -13,10 +14,8 @@ use nusb::{
     DeviceInfo,
     transfer::{Direction, RequestBuffer},
 };
-use parser::parse;
 
 pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
-    std::thread::sleep(Duration::from_millis(2200));
     println!("attempting to open the device...");
     if let Ok(device) = aoa_info.open() {
         println!("attempting to claim the interface...");
@@ -40,18 +39,11 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
 
                 std::thread::sleep(Duration::from_millis(30));
 
-                println!("awaiting first touch");
                 loop {
                     let buf = RequestBuffer::new(16384);
-                    println!("performing request");
                     let res = block_on(interface.bulk_in(endpoint.address(), buf)).into_result();
                     match res {
                         Ok(res) => {
-                            println!(
-                                "{}",
-                                String::from_utf8(res.clone())
-                                    .unwrap_or("ENCODING FAILURE".to_string())
-                            );
                             let events: Vec<Vec<String>> = parse(&res);
                             let input_type = events[0][0].as_str();
 
@@ -124,51 +116,32 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                         })
                                         .collect();
                                     let finger_count = fingers.len();
-                                    println!("finger count: {}", finger_count);
-                                    match finger_count {
-                                        0 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 0),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 0),
-                                            ]);
-                                        }
-                                        1 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 0),
-                                            ]);
-                                        }
-                                        2 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, 0),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 1),
-                                            ]);
-                                        }
-                                        3 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, 0),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_TRIPLETAP, 1),
-                                            ]);
-                                        }
-                                        4 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_TRIPLETAP, 0),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_QUADTAP, 1),
-                                            ]);
-                                        }
-                                        5 => {
-                                            trackpad_events.append(&mut vec![
-                                                *KeyEvent::new(KeyCode::BTN_TOUCH, 1),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_QUADTAP, 0),
-                                                *KeyEvent::new(KeyCode::BTN_TOOL_QUINTTAP, 1),
-                                            ]);
-                                        }
-                                        _ => {}
-                                    }
+                                    trackpad_events.append(&mut vec![
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOUCH,
+                                            (1..=5).contains(&finger_count).into(),
+                                        ),
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOOL_FINGER,
+                                            (finger_count == 1).into(),
+                                        ),
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOOL_DOUBLETAP,
+                                            (finger_count == 2).into(),
+                                        ),
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOOL_TRIPLETAP,
+                                            (finger_count == 3).into(),
+                                        ),
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOOL_QUADTAP,
+                                            (finger_count == 4).into(),
+                                        ),
+                                        *KeyEvent::new(
+                                            KeyCode::BTN_TOOL_QUINTTAP,
+                                            (finger_count == 5).into(),
+                                        ),
+                                    ]);
 
                                     touchepad.emit(&trackpad_events)?;
 
