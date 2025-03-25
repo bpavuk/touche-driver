@@ -23,7 +23,7 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         src = craneLib.cleanCargoSource ./.;
-        nativeBuildInputs = with pkgs; [ rustToolchain pkg-config gh ];
+        nativeBuildInputs = with pkgs; [ rustToolchain rust-analyzer pkg-config gh neovim lazygit ];
         buildInputs = with pkgs; [ systemd ];
         commonArgs = {
           inherit src buildInputs nativeBuildInputs;
