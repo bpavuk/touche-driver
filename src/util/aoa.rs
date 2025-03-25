@@ -72,3 +72,7 @@ pub(crate) fn check_aoa() -> Option<DeviceInfo> {
         |mut devs| devs.find(|dev| (0x2d00..=0x2d05).contains(&dev.product_id())),
     )
 }
+
+pub(crate) fn is_aoa(info: &DeviceInfo) -> bool {
+    (0x2d00..=0x2d05).contains(&info.product_id())
+}
