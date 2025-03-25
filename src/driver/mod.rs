@@ -11,8 +11,8 @@ use evdev::InputEvent;
 use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
 use futures_lite::{future::block_on, io};
 use nusb::{
-    DeviceInfo,
     transfer::{Direction, RequestBuffer},
+    DeviceInfo,
 };
 
 pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
@@ -27,12 +27,35 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                 .flat_map(|desc| desc.endpoints())
                 .collect::<Vec<_>>();
 
-            if let Some(endpoint) = endpoints
-                .iter()
-                .find(|end| end.direction() == Direction::In)
-            {
-                let height = 4096;
-                let width = 4096;
+            if let (Some(in_endpoint), Some(out_endpoint)) = (
+                endpoints
+                    .iter()
+                    .find(|end| end.direction() == Direction::In),
+                endpoints
+                    .iter()
+                    .find(|end| end.direction() == Direction::Out),
+            ) {
+                let opcode = vec![2];
+                let _ = block_on(interface.bulk_out(out_endpoint.address(), opcode));
+
+                let size_data_buf = RequestBuffer::new(16384);
+                let size_data_res =
+                    block_on(interface.bulk_in(in_endpoint.address(), size_data_buf)).into_result();
+
+                if size_data_res.is_err() {
+                    println!("size data retrieval error!");
+                    return Result::Ok(());
+                }
+
+                let size_data = parse(&size_data_res.unwrap());
+
+                if size_data[0][0] != "X" {
+                    println!("wrong size data!");
+                    return Result::Ok(());
+                }
+
+                let width: i32 = size_data[0][1].parse().unwrap();
+                let height: i32 = size_data[0][2].parse().unwrap();
 
                 let mut touchetab = graphic_tablet(width, height)?;
                 let mut touchepad = touchpad(width, height)?;
@@ -40,8 +63,13 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                 std::thread::sleep(Duration::from_millis(30));
 
                 loop {
+                    let opcode = vec![1];
+                    let _ =
+                        block_on(interface.bulk_out(out_endpoint.address(), opcode)).into_result();
+
                     let buf = RequestBuffer::new(16384);
-                    let res = block_on(interface.bulk_in(endpoint.address(), buf)).into_result();
+                    let res = block_on(interface.bulk_in(in_endpoint.address(), buf)).into_result();
+
                     match res {
                         Ok(res) => {
                             let events: Vec<Vec<String>> = parse(&res);
@@ -145,20 +173,16 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
 
                                     touchepad.emit(&trackpad_events)?;
 
-                                    std::thread::sleep(Duration::new(0, 1000));
+                                    std::thread::sleep(Duration::new(0, 5000));
                                 }
                                 _ => {}
                             }
-
-                            println!("sent");
                         }
                         Err(_) => {
                             println!("TRANSFER ERROR\nperhaps, device disconnected?");
                             break;
                         }
                     }
-
-                    println!();
                 }
             }
         }
