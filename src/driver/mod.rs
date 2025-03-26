@@ -7,20 +7,20 @@ use std::time::Duration;
 use crate::util::parser::parse;
 
 use devices::{graphic_tablet, touchpad};
-use evdev::InputEvent;
-use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, KeyCode, KeyEvent};
+use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, InputEvent, KeyCode, KeyEvent};
 use futures_lite::{future::block_on, io};
+use log::{error, info, trace};
 use nusb::{
-    transfer::{Direction, RequestBuffer},
     DeviceInfo,
+    transfer::{Direction, RequestBuffer},
 };
 
 pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
-    println!("attempting to open the device...");
+    info!("attempting to open the AOA device...");
     if let Ok(device) = aoa_info.open() {
-        println!("attempting to claim the interface...");
+        info!("attempting to claim the interface...");
         if let Ok(interface) = device.claim_interface(0) {
-            println!("interface claimed. searching for IN endpoint...");
+            info!("interface claimed. searching for IN and OUT endpoints...");
             let descriptors = interface.descriptors().collect::<Vec<_>>();
             let endpoints = descriptors
                 .iter()
@@ -43,14 +43,14 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                     block_on(interface.bulk_in(in_endpoint.address(), size_data_buf)).into_result();
 
                 if size_data_res.is_err() {
-                    println!("size data retrieval error!");
+                    error!("size data retrieval error! maybe, disconnected?");
                     return Result::Ok(());
                 }
 
                 let size_data = parse(&size_data_res.unwrap());
 
                 if size_data[0][0] != "X" {
-                    println!("wrong size data!");
+                    error!("wrong size data!");
                     return Result::Ok(());
                 }
 
@@ -63,6 +63,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                 std::thread::sleep(Duration::from_millis(30));
 
                 loop {
+                    trace!("requesting data frame");
                     let opcode = vec![1];
                     let _ =
                         block_on(interface.bulk_out(out_endpoint.address(), opcode)).into_result();
@@ -70,6 +71,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                     let buf = RequestBuffer::new(16384);
                     let res = block_on(interface.bulk_in(in_endpoint.address(), buf)).into_result();
 
+                    trace!("received. parsing data frame...");
                     match res {
                         Ok(res) => {
                             let events: Vec<Vec<String>> = parse(&res);
@@ -98,8 +100,11 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
                                         AbsoluteAxisCode::ABS_PRESSURE,
                                         pressure as i32,
                                     ));
-
                                     touchetab.emit(&tablet_events)?;
+
+                                    std::thread::sleep(Duration::from_millis(5));
+
+                                    trace!("parsed stylus frame");
                                 }
                                 // using touch events
                                 "F" => {
@@ -173,16 +178,19 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> io::Result<()> {
 
                                     touchepad.emit(&trackpad_events)?;
 
-                                    std::thread::sleep(Duration::new(0, 5000));
+                                    std::thread::sleep(Duration::from_millis(5));
+
+                                    trace!("parsed touchpad frame");
                                 }
                                 _ => {}
                             }
                         }
                         Err(_) => {
-                            println!("TRANSFER ERROR\nperhaps, device disconnected?");
+                            error!("TRANSFER ERROR! perhaps, device disconnected?");
                             break;
                         }
                     }
+                    trace!("finished parsing data frame");
                 }
             }
         }
