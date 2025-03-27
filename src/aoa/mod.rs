@@ -11,7 +11,7 @@ pub(crate) struct AoaDevice {
 }
 
 impl AoaDevice {
-    fn new(aoa_device_info: DeviceInfo) -> Result<AoaDevice, ()> {
+    pub(crate) fn new(aoa_device_info: DeviceInfo) -> Result<AoaDevice, ()> {
         info!("attempting to open the AOA device...");
         let device = aoa_device_info.open().map_err(|_| {
             error!("failed to open the AOA device!");
@@ -54,12 +54,12 @@ impl AoaDevice {
         })
     }
 
-    fn read(&self) -> Result<Vec<u8>, TransferError> {
+    pub(crate) fn read(&self) -> Result<Vec<u8>, TransferError> {
         let buffer = RequestBuffer::new(16384);
         block_on(self.interface.bulk_in(self.in_endpoint_address, buffer)).into_result()
     }
 
-    fn write(&self, data: Vec<u8>) -> Result<ResponseBuffer, TransferError> {
+    pub(crate) fn write(&self, data: Vec<u8>) -> Result<ResponseBuffer, TransferError> {
         block_on(self.interface.bulk_out(self.out_endpoint_address, data)).into_result()
     }
 }

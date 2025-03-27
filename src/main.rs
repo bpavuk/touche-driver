@@ -1,6 +1,7 @@
 mod driver;
 mod util;
 mod data;
+mod aoa;
 
 use std::{io::Write, time::Duration};
 
@@ -33,7 +34,12 @@ fn main() {
 
             if is_aoa(&device_info) {
                 info!("AOA device detected. starting driver loop...");
-                driver_loop(device_info).unwrap();
+                match driver_loop(device_info) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        info!("if at first you don't succeed, die, die again!");
+                    },
+                };
             } else {
                 info!("searching for Android device...");
                 if let Ok(handle) = device_info.open() {
