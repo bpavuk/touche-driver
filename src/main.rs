@@ -1,5 +1,6 @@
 mod driver;
 mod util;
+mod data;
 
 use std::{io::Write, time::Duration};
 
