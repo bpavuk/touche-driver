@@ -2,6 +2,8 @@ mod driver;
 mod util;
 mod data;
 mod aoa;
+mod graphics_tablet;
+mod touchpad;
 
 use std::{io::Write, time::Duration};
 

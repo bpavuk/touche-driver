@@ -1,15 +1,13 @@
-mod devices;
-
 use core::result::Result;
 use std::time::Duration;
 
 use crate::{
     aoa::AoaDevice,
     data::{ToucheData, parse_touche_data},
+    graphics_tablet::GraphicsTabletDevice,
+    touchpad::TouchpadDevice,
 };
 
-use devices::{graphic_tablet, touchpad};
-use evdev::{AbsoluteAxisCode, AbsoluteAxisEvent, InputEvent, KeyCode, KeyEvent};
 use log::{error, info, trace};
 use nusb::DeviceInfo;
 
@@ -50,8 +48,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
         y: height,
     }) = size_data.first()
     {
-        let touchetab = graphic_tablet(*width, *height);
-        let mut touchetab = match touchetab {
+        let mut touchetab = match GraphicsTabletDevice::new(*width, *height) {
             Ok(tab) => tab,
             Err(e) => {
                 error!("graphics tablet creation error! {}", e);
@@ -59,8 +56,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
                 return Err(());
             }
         };
-        let touchepad = touchpad(*width, *height);
-        let mut touchepad = match touchepad {
+        let mut touchepad = match TouchpadDevice::new(*width, *height) {
             Ok(pad) => pad,
             Err(e) => {
                 error!("touchpad creation error! {}", e);
@@ -99,94 +95,27 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
                         }
                     };
 
-                    let mut tablet_events: Vec<InputEvent> = vec![];
-                    let mut trackpad_events: Vec<InputEvent> = vec![];
-                    let mut finger_count = 0;
-                    for event in events {
-                        match event {
-                            ToucheData::ScreenSize { .. } => {
-                                // screen size event - do nothing
-                            }
-                            ToucheData::StylusFrame {
-                                x,
-                                y,
-                                pressed,
-                                pressure,
-                            } => {
-                                trace!("parsing stylus frame");
-                                tablet_events.push(*KeyEvent::new(KeyCode::BTN_TOOL_PEN, 1));
-                                tablet_events
-                                    .push(*AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_X, x));
-                                tablet_events
-                                    .push(*AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_Y, y));
-                                tablet_events
-                                    .push(*KeyEvent::new(KeyCode::BTN_TOUCH, pressed.into()));
-                                let pressure_value = if pressed {
-                                    pressure.unwrap_or(1_f32) * 4096_f32
-                                } else {
-                                    0_f32
-                                };
-                                tablet_events.push(*AbsoluteAxisEvent::new(
-                                    AbsoluteAxisCode::ABS_PRESSURE,
-                                    pressure_value as i32,
-                                ));
-                            }
-                            ToucheData::TouchFrame {
-                                x,
-                                y,
-                                touch_id,
-                                pressed,
-                            } => {
-                                trace!("parsing touch frame");
-                                let mt_slot = touch_id % 10;
-                                if pressed {
-                                    finger_count += 1;
-                                }
-
-                                trackpad_events.append(&mut vec![
-                                    *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_MT_SLOT, mt_slot),
-                                    *AbsoluteAxisEvent::new(
-                                        AbsoluteAxisCode::ABS_MT_TRACKING_ID,
-                                        if pressed { touch_id } else { -1 },
-                                    ),
-                                    *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_MT_POSITION_X, x),
-                                    *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_MT_POSITION_Y, y),
-                                ]);
-                            }
+                    // new approach
+                    match touchepad.emit(&events[..]) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("touchpad event processing error!");
+                            info!("error logs:\n{}", e);
+                            return Err(());
                         }
                     }
 
-                    if !tablet_events.is_empty() {
-                        trace!("emitting tablet events");
-                        match touchetab.emit(&tablet_events) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                error!("error emitting tablet events! {}", e);
-                                info!("error logs:\n{}", e);
-                            }
+                    // graphics tablet events emission
+                    match touchetab.emit(&events[..]) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("graphics tablet event processing error!");
+                            info!("error logs:\n{}", e);
                         }
                     }
-                    if !trackpad_events.is_empty() {
-                        trace!("emitting trackpad events");
-                        trackpad_events.append(&mut vec![
-                            *KeyEvent::new(
-                                KeyCode::BTN_TOUCH,
-                                (1..=5).contains(&finger_count).into(),
-                            ),
-                            *KeyEvent::new(KeyCode::BTN_TOOL_FINGER, (finger_count == 1).into()),
-                            *KeyEvent::new(KeyCode::BTN_TOOL_DOUBLETAP, (finger_count == 2).into()),
-                            *KeyEvent::new(KeyCode::BTN_TOOL_TRIPLETAP, (finger_count == 3).into()),
-                            *KeyEvent::new(KeyCode::BTN_TOOL_QUADTAP, (finger_count == 4).into()),
-                            *KeyEvent::new(KeyCode::BTN_TOOL_QUINTTAP, (finger_count == 5).into()),
-                        ]);
-                        match touchepad.emit(&trackpad_events) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                error!("error emitting touchpad events! {}", e);
-                                info!("error logs:\n{}", e);
-                            }
-                        }
-                    }
+
+                    trace!("finished parsing data frame");
+                    std::thread::sleep(Duration::from_millis(5));
                 }
                 Err(e) => {
                     error!("TRANSFER ERROR! perhaps, device disconnected?");
@@ -194,8 +123,6 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
                     break;
                 }
             }
-            trace!("finished parsing data frame");
-            std::thread::sleep(Duration::from_millis(5));
         }
     } else {
         error!("wrong size data!");
