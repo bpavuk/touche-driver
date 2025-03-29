@@ -139,7 +139,9 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
                             } => {
                                 trace!("parsing touch frame");
                                 let mt_slot = touch_id % 10;
-                                finger_count += 1;
+                                if pressed {
+                                    finger_count += 1;
+                                }
 
                                 trackpad_events.append(&mut vec![
                                     *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_MT_SLOT, mt_slot),
@@ -193,6 +195,7 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
                 }
             }
             trace!("finished parsing data frame");
+            std::thread::sleep(Duration::from_millis(5));
         }
     } else {
         error!("wrong size data!");

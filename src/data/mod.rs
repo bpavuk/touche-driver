@@ -23,6 +23,7 @@ pub(crate) enum ToucheData {
 
 pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, FromUtf8Error> {
     let info_string = String::from_utf8(input.to_owned())?;
+    trace!("touche input data:\n{}", info_string);
 
     let token_table: Vec<Vec<&str>> = info_string
         .split("\n")

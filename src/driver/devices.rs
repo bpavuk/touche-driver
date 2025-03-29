@@ -45,6 +45,8 @@ pub(crate) fn touchpad(width: i32, height: i32) -> io::Result<VirtualDevice> {
     touchepad_keys.insert(KeyCode::BTN_TOOL_FINGER);
     touchepad_keys.insert(KeyCode::BTN_TOOL_DOUBLETAP);
     touchepad_keys.insert(KeyCode::BTN_TOOL_TRIPLETAP);
+    touchepad_keys.insert(KeyCode::BTN_TOOL_QUADTAP);
+    touchepad_keys.insert(KeyCode::BTN_TOOL_QUINTTAP);
 
     let mut touchepad_props: AttributeSet<PropType> = AttributeSet::new();
     touchepad_props.insert(PropType::POINTER);
