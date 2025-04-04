@@ -3,7 +3,8 @@ use std::io;
 use crate::data::ToucheData;
 
 use evdev::{
-    uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId, KeyCode, KeyEvent, PropType, UinputAbsSetup
+    AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId,
+    KeyCode, KeyEvent, PropType, UinputAbsSetup, uinput::VirtualDevice,
 };
 
 pub(crate) struct GraphicsTabletDevice {
@@ -59,30 +60,33 @@ impl GraphicsTabletDevice {
                     x,
                     y,
                     pressed,
-                    pressure
+                    pressure,
                 } => {
+                    let tool_pen_event = *KeyEvent::new(KeyCode::BTN_TOOL_PEN, 1);
                     let x_event = *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_X, *x);
                     let y_event = *AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_Y, *y);
                     let touch_event = *KeyEvent::new(KeyCode::BTN_TOUCH, (*pressed).into());
-                    let stylus_event = *KeyEvent::new(KeyCode::BTN_STYLUS, (*pressed).into());
-                    let tool_pen_event = *KeyEvent::new(KeyCode::BTN_TOOL_PEN, (*pressed).into());
 
+                    tablet_events.push(tool_pen_event);
                     tablet_events.push(x_event);
                     tablet_events.push(y_event);
                     tablet_events.push(touch_event);
-                    tablet_events.push(stylus_event);
-                    tablet_events.push(tool_pen_event);
 
-                    if let Some(pressure_value) = pressure {
-                        let pressure_int = (pressure_value * 4096.0) as i32; // Assuming max pressure is 4096
-                        tablet_events.push(*AbsoluteAxisEvent::new(AbsoluteAxisCode::ABS_PRESSURE, pressure_int));
-                    }
+                    let pressure_int = if let Some(pressure_value) = pressure {
+                        (pressure_value * 4096.0) as i32 // Assuming max pressure is 4096
+                    } else {
+                        0
+                    };
+                    tablet_events.push(*AbsoluteAxisEvent::new(
+                        AbsoluteAxisCode::ABS_PRESSURE,
+                        pressure_int,
+                    ));
                 }
             }
         }
         if !tablet_events.is_empty() {
             return self.device.emit(&tablet_events);
         }
-        return Result::Ok(());
+        Result::Ok(())
     }
 }

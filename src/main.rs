@@ -6,7 +6,10 @@ mod touchpad;
 
 use std::{io::Write, time::Duration};
 
-use aoa::utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
+use aoa::{
+    AoaDevice,
+    utils::{get_aoa_version, introduce_host, is_aoa, make_aoa},
+};
 use chrono::Utc;
 use driver::driver_loop;
 use futures_lite::stream;
@@ -34,8 +37,15 @@ fn main() {
             debug!("connected device product_id: {}", device_info.product_id());
 
             if is_aoa(&device_info) {
+                let aoa_device = match AoaDevice::new(device_info) {
+                    Ok(device) => device,
+                    Err(_) => {
+                        error!("failed to create AOA device!");
+                        continue;
+                    }
+                };
                 info!("AOA device detected. starting driver loop...");
-                match driver_loop(device_info) {
+                match driver_loop(aoa_device) {
                     Ok(_) => {}
                     Err(_) => {
                         info!("if at first you don't succeed, die, die again!");
