@@ -1,16 +1,20 @@
-mod driver;
-mod util;
-mod data;
 mod aoa;
+mod data;
+mod driver;
+mod graphics_tablet;
+mod touchpad;
 
 use std::{io::Write, time::Duration};
 
+use aoa::{
+    AoaDevice,
+    utils::{get_aoa_version, introduce_host, is_aoa, make_aoa},
+};
 use chrono::Utc;
 use driver::driver_loop;
 use futures_lite::stream;
 use log::{debug, error, info};
 use nusb::{hotplug::HotplugEvent, watch_devices};
-use util::aoa::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 
 fn main() {
     let _ = env_logger::builder()
@@ -33,12 +37,19 @@ fn main() {
             debug!("connected device product_id: {}", device_info.product_id());
 
             if is_aoa(&device_info) {
+                let aoa_device = match AoaDevice::new(device_info) {
+                    Ok(device) => device,
+                    Err(_) => {
+                        error!("failed to create AOA device!");
+                        continue;
+                    }
+                };
                 info!("AOA device detected. starting driver loop...");
-                match driver_loop(device_info) {
-                    Ok(_) => {},
+                match driver_loop(aoa_device) {
+                    Ok(_) => {}
                     Err(_) => {
                         info!("if at first you don't succeed, die, die again!");
-                    },
+                    }
                 };
             } else {
                 info!("searching for Android device...");
