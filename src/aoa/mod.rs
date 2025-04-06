@@ -1,7 +1,10 @@
+pub(crate) mod utils;
+
 use futures_lite::future::block_on;
 use log::{error, info};
 use nusb::{
-    transfer::{Direction, RequestBuffer, ResponseBuffer, TransferError}, DeviceInfo, Interface
+    DeviceInfo, Interface,
+    transfer::{Direction, RequestBuffer, ResponseBuffer, TransferError},
 };
 
 pub(crate) struct AoaDevice {

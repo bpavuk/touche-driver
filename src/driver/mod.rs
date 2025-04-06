@@ -9,12 +9,9 @@ use crate::{
 };
 
 use log::{error, info, trace};
-use nusb::DeviceInfo;
 
 // This function didn't hear about single responsibility principle
-pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
-    let aoa_device = AoaDevice::new(aoa_info.clone())?;
-
+pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), ()> {
     let opcode = vec![2];
     match aoa_device.write(opcode) {
         Ok(_) => {}
@@ -67,19 +64,19 @@ pub(crate) fn driver_loop(aoa_info: DeviceInfo) -> Result<(), ()> {
 
         std::thread::sleep(Duration::from_millis(30));
 
-        loop {
-            trace!("requesting data frame");
-            let opcode = vec![1];
-            let write_result = aoa_device.write(opcode);
-            match write_result {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("opcode writing error! {}", e);
-                    info!("error logs:\n{}", e);
-                    return Err(());
-                }
+        trace!("requesting data frame");
+        let opcode = vec![1];
+        let write_result = aoa_device.write(opcode);
+        match write_result {
+            Ok(_) => {}
+            Err(e) => {
+                error!("opcode writing error! {}", e);
+                info!("error logs:\n{}", e);
+                return Err(());
             }
+        }
 
+        loop {
             let res = aoa_device.read();
 
             trace!("received. parsing data frame...");
