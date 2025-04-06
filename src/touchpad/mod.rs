@@ -2,15 +2,18 @@ use std::io;
 
 use crate::data::ToucheData;
 
+#[cfg(target_os = "linux")]
 use evdev::{
     uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId, KeyCode, KeyEvent, PropType, UinputAbsSetup
 };
 use log::trace;
 
+#[cfg(target_os = "linux")]
 pub(crate) struct TouchpadDevice {
     device: VirtualDevice,
 }
 
+#[cfg(target_os = "linux")]
 impl TouchpadDevice {
     pub(crate) fn new(width: i32, height: i32) -> io::Result<TouchpadDevice> {
         let mut touchepad_keys: AttributeSet<KeyCode> = AttributeSet::new();

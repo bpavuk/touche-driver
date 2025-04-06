@@ -2,15 +2,18 @@ use std::io;
 
 use crate::data::ToucheData;
 
+#[cfg(target_os = "linux")]
 use evdev::{
-    AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId,
-    KeyCode, KeyEvent, PropType, UinputAbsSetup, uinput::VirtualDevice,
+    uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType,
+    InputEvent, InputId, KeyCode, KeyEvent, PropType, UinputAbsSetup,
 };
 
+#[cfg(target_os = "linux")]
 pub(crate) struct GraphicsTabletDevice {
     device: VirtualDevice,
 }
 
+#[cfg(target_os = "linux")]
 impl GraphicsTabletDevice {
     pub(crate) fn new(width: i32, height: i32) -> io::Result<GraphicsTabletDevice> {
         println!("device setup. width {} height {}", width, height);
