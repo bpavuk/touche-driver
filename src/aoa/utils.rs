@@ -66,13 +66,6 @@ pub(crate) fn make_aoa(handle: &Device) -> Result<ResponseBuffer, TransferError>
     block_on(handle.control_out(request)).into_result()
 }
 
-pub(crate) fn check_aoa() -> Option<DeviceInfo> {
-    list_devices().map_or_else(
-        |_| Option::None,
-        |mut devs| devs.find(|dev| (0x2d00..=0x2d05).contains(&dev.product_id())),
-    )
-}
-
 pub(crate) fn is_aoa(info: &DeviceInfo) -> bool {
     (0x2d00..=0x2d05).contains(&info.product_id())
 }
