@@ -17,19 +17,19 @@ pub(crate) struct GraphicsTabletDevice {
 impl GraphicsTabletDevice {
     pub(crate) fn new(width: i32, height: i32) -> io::Result<GraphicsTabletDevice> {
         println!("device setup. width {} height {}", width, height);
-        let mut touchetab_keys: AttributeSet<KeyCode> = AttributeSet::new();
-        touchetab_keys.insert(KeyCode::BTN_STYLUS);
-        touchetab_keys.insert(KeyCode::BTN_TOOL_PEN);
-        touchetab_keys.insert(KeyCode::BTN_TOUCH);
+        let mut touche_tablet_keys: AttributeSet<KeyCode> = AttributeSet::new();
+        touche_tablet_keys.insert(KeyCode::BTN_STYLUS);
+        touche_tablet_keys.insert(KeyCode::BTN_TOOL_PEN);
+        touche_tablet_keys.insert(KeyCode::BTN_TOUCH);
 
-        let mut touchetab_props: AttributeSet<PropType> = AttributeSet::new();
-        touchetab_props.insert(PropType::DIRECT);
-        touchetab_props.insert(PropType::POINTER);
+        let mut touche_tablet_props: AttributeSet<PropType> = AttributeSet::new();
+        touche_tablet_props.insert(PropType::DIRECT);
+        touche_tablet_props.insert(PropType::POINTER);
 
         let device = evdev::uinput::VirtualDevice::builder()?
             .name("touchetab")
-            .with_properties(&touchetab_props)?
-            .with_keys(&touchetab_keys)?
+            .with_properties(&touche_tablet_props)?
+            .with_keys(&touche_tablet_keys)?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_X,
                 AbsInfo::new(0, 0, width, 0, 0, 100),
