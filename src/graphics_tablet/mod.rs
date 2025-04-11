@@ -4,9 +4,10 @@ use crate::data::ToucheData;
 
 #[cfg(target_os = "linux")]
 use evdev::{
-    uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType,
-    InputEvent, InputId, KeyCode, KeyEvent, PropType, UinputAbsSetup,
+    AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId,
+    KeyCode, KeyEvent, PropType, UinputAbsSetup, uinput::VirtualDevice,
 };
+use log::error;
 
 #[cfg(target_os = "linux")]
 pub(crate) struct GraphicsTabletDevice {
@@ -18,10 +19,25 @@ impl GraphicsTabletDevice {
     pub(crate) fn new(width: i32, height: i32) -> io::Result<GraphicsTabletDevice> {
         println!("device setup. width {} height {}", width, height);
         let mut touche_tablet_keys: AttributeSet<KeyCode> = AttributeSet::new();
+
+        // defining stylus capabilities
         touche_tablet_keys.insert(KeyCode::BTN_STYLUS);
         touche_tablet_keys.insert(KeyCode::BTN_TOOL_PEN);
         touche_tablet_keys.insert(KeyCode::BTN_TOUCH);
 
+        // defining on-tablet buttons
+        touche_tablet_keys.insert(KeyCode::BTN_0);
+        touche_tablet_keys.insert(KeyCode::BTN_1);
+        touche_tablet_keys.insert(KeyCode::BTN_2);
+        touche_tablet_keys.insert(KeyCode::BTN_3);
+        touche_tablet_keys.insert(KeyCode::BTN_4);
+        touche_tablet_keys.insert(KeyCode::BTN_5);
+        touche_tablet_keys.insert(KeyCode::BTN_6);
+        touche_tablet_keys.insert(KeyCode::BTN_7);
+        touche_tablet_keys.insert(KeyCode::BTN_8);
+        touche_tablet_keys.insert(KeyCode::BTN_9);
+
+        // props set accordingly to specifications in Linux kernel docs
         let mut touche_tablet_props: AttributeSet<PropType> = AttributeSet::new();
         touche_tablet_props.insert(PropType::DIRECT);
         touche_tablet_props.insert(PropType::POINTER);
@@ -58,7 +74,9 @@ impl GraphicsTabletDevice {
                 ToucheData::ScreenSize { .. } => {
                     // screen size event - do nothing
                 }
-                ToucheData::TouchFrame { .. } => {}
+                ToucheData::TouchFrame { .. } => {
+                    // touch frame - ignore
+                }
                 ToucheData::StylusFrame {
                     x,
                     y,
@@ -84,6 +102,25 @@ impl GraphicsTabletDevice {
                         AbsoluteAxisCode::ABS_PRESSURE,
                         pressure_int,
                     ));
+                }
+                ToucheData::ButtonFrame { button_id, pressed } => {
+                    let key_code = match button_id {
+                        0 => KeyCode::BTN_0,
+                        1 => KeyCode::BTN_1,
+                        2 => KeyCode::BTN_2,
+                        3 => KeyCode::BTN_3,
+                        4 => KeyCode::BTN_4,
+                        5 => KeyCode::BTN_5,
+                        6 => KeyCode::BTN_6,
+                        7 => KeyCode::BTN_7,
+                        8 => KeyCode::BTN_8,
+                        9 => KeyCode::BTN_9,
+                        _ => {
+                            error!("unsupported button id {}", button_id);
+                            continue;
+                        }
+                    };
+                    tablet_events.push(*KeyEvent::new(key_code, (*pressed).into()));
                 }
             }
         }

@@ -10,7 +10,6 @@ use crate::{
 
 use log::{error, info, trace};
 
-// This function didn't hear about single responsibility principle
 pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), ()> {
     let opcode = vec![2];
     match aoa_device.write(opcode) {
@@ -92,7 +91,6 @@ pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), ()> {
                         }
                     };
 
-                    // new approach
                     match touchepad.emit(&events[..]) {
                         Ok(_) => {}
                         Err(e) => {
@@ -102,7 +100,6 @@ pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), ()> {
                         }
                     }
 
-                    // graphics tablet events emission
                     match touchetab.emit(&events[..]) {
                         Ok(_) => {}
                         Err(e) => {

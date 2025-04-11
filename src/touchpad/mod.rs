@@ -69,6 +69,7 @@ impl TouchpadDevice {
                     // screen size event - do nothing
                 }
                 ToucheData::StylusFrame { .. } => {}
+                ToucheData::ButtonFrame { .. } => {}
                 ToucheData::TouchFrame {
                     x,
                     y,
@@ -106,6 +107,6 @@ impl TouchpadDevice {
             ]);
             return self.device.emit(&trackpad_events);
         }
-        return Result::Ok(());
+        Result::Ok(())
     }
 }

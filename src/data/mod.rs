@@ -19,6 +19,10 @@ pub(crate) enum ToucheData {
         touch_id: i32,
         pressed: bool,
     },
+    ButtonFrame {
+        button_id: i32,
+        pressed: bool,
+    },
 }
 
 pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, FromUtf8Error> {
@@ -121,6 +125,28 @@ pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, From
                         x: x as i32,
                         y: y as i32,
                         touch_id,
+                        pressed
+                    });
+                };
+            }
+            "B" => {
+                if let Some([button_id, pressed]) = token_row.get(1..=2) {
+                    let button_id = button_id.parse::<i32>();
+                    if button_id.is_err() {
+                        trace!("error parsing B.button_id");
+                        continue;
+                    }
+                    let button_id = button_id.unwrap();
+
+                    let pressed = pressed.parse::<i32>();
+                    if pressed.is_err() {
+                        trace!("error parsing B.pressed");
+                        continue;
+                    }
+                    let pressed = pressed.unwrap() == 1;
+
+                    data.push(ToucheData::ButtonFrame {
+                        button_id,
                         pressed
                     });
                 };
