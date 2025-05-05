@@ -20,7 +20,7 @@ sudo dnf install libevdev-devel
 
 # Install libudev0 from AUR
 yay -S libudev0
-sudo pacman -S libevdev
+sudo pacman -S libevdev android-udev
 ```
 
 ### NixOS
