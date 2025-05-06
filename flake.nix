@@ -24,7 +24,7 @@
 
         src = craneLib.cleanCargoSource ./.;
         nativeBuildInputs = with pkgs; [ rustToolchain rust-analyzer pkg-config ];
-        buildInputs = with pkgs; [ systemd ];
+        buildInputs = with pkgs; [ systemd android-udev-rules ];
         commonArgs = {
           inherit src buildInputs nativeBuildInputs;
         };
