@@ -2,16 +2,16 @@
 
 ## Setup
 
-Ensure `libevdev-dev` and `libudev-dev` are installed:
+Ensure `libevdev-dev`, `libudev-dev`, and `android-udev-rules` are installed:
 
 ### Ubuntu
 ```bash
-sudo apt-get update && sudo apt-get install libevdev-dev systemd-dev
+sudo apt-get update && sudo apt-get install libevdev-dev systemd-dev android-sdk-platform-tools-common
 ```
 
 ### Fedora
 ```bash
-sudo dnf install libevdev-devel
+sudo dnf install libevdev-devel android-udev-rules
 ```
 
 ### Arch
