@@ -4,8 +4,8 @@ use std::time::Duration;
 use crate::{
     aoa::AoaDevice,
     data::{ToucheData, parse_touche_data},
-    graphics_tablet::GraphicsTabletDevice,
-    touchpad::TouchpadDevice,
+    devices::graphics_tablet::GraphicsTabletDevice,
+    devices::touchpad::TouchpadDevice,
 };
 
 use log::{error, info, trace};

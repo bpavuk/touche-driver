@@ -1,9 +1,7 @@
 mod aoa;
 mod data;
+mod devices;
 mod driver;
-mod graphics_tablet;
-mod touchpad;
-
 use std::io::Write;
 
 use aoa::usb_device_listener;
