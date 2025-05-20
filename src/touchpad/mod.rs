@@ -4,7 +4,8 @@ use crate::data::ToucheData;
 
 #[cfg(target_os = "linux")]
 use evdev::{
-    uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId, KeyCode, KeyEvent, PropType, UinputAbsSetup
+    AbsInfo, AbsoluteAxisCode, AbsoluteAxisEvent, AttributeSet, BusType, InputEvent, InputId,
+    KeyCode, KeyEvent, PropType, UinputAbsSetup, uinput::VirtualDevice,
 };
 use log::trace;
 

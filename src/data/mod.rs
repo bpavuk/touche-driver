@@ -76,7 +76,7 @@ pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, From
                                 Ok(pressure) => Some(pressure),
                                 Err(_) => {
                                     continue;
-                                },
+                                }
                             },
                             None => None,
                         }
@@ -125,7 +125,7 @@ pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, From
                         x: x as i32,
                         y: y as i32,
                         touch_id,
-                        pressed
+                        pressed,
                     });
                 };
             }
@@ -145,10 +145,7 @@ pub(crate) fn parse_touche_data(input: &Vec<u8>) -> Result<Vec<ToucheData>, From
                     }
                     let pressed = pressed.unwrap() == 1;
 
-                    data.push(ToucheData::ButtonFrame {
-                        button_id,
-                        pressed
-                    });
+                    data.push(ToucheData::ButtonFrame { button_id, pressed });
                 };
             }
             _ => {}
