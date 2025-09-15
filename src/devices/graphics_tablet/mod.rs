@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::data::ToucheData;
+use crate::data::events::ToucheEvent;
 
 #[cfg(target_os = "linux")]
 use evdev::{
@@ -67,17 +67,14 @@ impl GraphicsTabletDevice {
         Ok(GraphicsTabletDevice { device })
     }
 
-    pub(crate) fn emit(&mut self, touche_data: &[ToucheData]) -> Result<(), io::Error> {
+    pub(crate) fn emit(&mut self, touche_data: &[ToucheEvent]) -> Result<(), io::Error> {
         let mut tablet_events: Vec<InputEvent> = vec![];
         for event in touche_data {
             match event {
-                ToucheData::ScreenSize { .. } => {
-                    // screen size event - do nothing
-                }
-                ToucheData::TouchFrame { .. } => {
+                ToucheEvent::Touch { .. } => {
                     // touch frame - ignore
                 }
-                ToucheData::StylusFrame {
+                ToucheEvent::Stylus {
                     x,
                     y,
                     pressed,
@@ -93,17 +90,13 @@ impl GraphicsTabletDevice {
                     tablet_events.push(y_event);
                     tablet_events.push(touch_event);
 
-                    let pressure_int = if let Some(pressure_value) = pressure {
-                        (pressure_value * 4096.0) as i32 // Assuming max pressure is 4096
-                    } else {
-                        0
-                    };
+                    let pressure_int = (pressure * 4096.0) as i32; // Assuming max pressure is 4096
                     tablet_events.push(*AbsoluteAxisEvent::new(
                         AbsoluteAxisCode::ABS_PRESSURE,
                         pressure_int,
                     ));
                 }
-                ToucheData::ButtonFrame { button_id, pressed } => {
+                ToucheEvent::Button { button_id, pressed } => {
                     let key_code = match button_id {
                         0 => KeyCode::BTN_0,
                         1 => KeyCode::BTN_1,

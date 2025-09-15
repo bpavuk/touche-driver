@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::data::ToucheData;
+use crate::data::events::ToucheEvent;
 
 #[cfg(target_os = "linux")]
 use evdev::{
@@ -61,17 +61,14 @@ impl TouchpadDevice {
         Ok(TouchpadDevice { device })
     }
 
-    pub(crate) fn emit(&mut self, touche_data: &[ToucheData]) -> Result<(), io::Error> {
+    pub(crate) fn emit(&mut self, touche_data: &[ToucheEvent]) -> Result<(), io::Error> {
         let mut trackpad_events: Vec<InputEvent> = vec![];
         let mut finger_count = 0;
         for event in touche_data {
             match event {
-                ToucheData::ScreenSize { .. } => {
-                    // screen size event - do nothing
-                }
-                ToucheData::StylusFrame { .. } => {}
-                ToucheData::ButtonFrame { .. } => {}
-                ToucheData::TouchFrame {
+                ToucheEvent::Stylus { .. } => {}
+                ToucheEvent::Button { .. } => {}
+                ToucheEvent::Touch {
                     x,
                     y,
                     touch_id,

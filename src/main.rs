@@ -26,8 +26,12 @@ fn main() {
         info!("AOA device detected. starting driver loop...");
         match driver_loop(aoa_device) {
             Ok(_) => {}
-            Err(_) => {
-                info!("if at first you don't succeed, die, die again!");
+            Err(e) => {
+                info!("if at first you don't succeed, die, die again!\n");
+
+                log::error!("{}\n", e);
+
+                log::error!("restarting.");
             }
         };
     });
