@@ -1,6 +1,6 @@
 pub(crate) mod utils;
 
-use futures_lite::{future::block_on, stream};
+use futures_lite::{future::block_on, stream, AsyncWriteExt};
 use log::{debug, error, info};
 use nusb::{
     DeviceInfo, Interface,
@@ -24,8 +24,9 @@ impl AoaDevice {
             error!("failed to open the AOA device!");
         })?;
         info!("attempting to claim the interface...");
-        let interface = device.claim_interface(0).map_err(|_| {
+        let interface = device.claim_interface(0).map_err(|e| {
             error!("failed to claim the interface!");
+            dbg!(e);
         })?;
 
         let binding = interface.clone();
@@ -93,10 +94,18 @@ where
                 callback(aoa_device);
             } else {
                 info!("searching for Android device...");
-                if let Ok(handle) = device_info.open() {
+                if let Ok(device) = device_info.open() {
                     std::thread::sleep(Duration::from_millis(500));
-                    // TODO: make it claim the interface
-                    // outside Unix platforms
+
+                    #[cfg(target_os = "windows")]
+                    let handle = device.claim_interface(0);
+                    #[cfg(target_os = "windows")]
+                    if handle.is_err() { continue }
+                    #[cfg(target_os = "windows")]
+                    let handle = handle.unwrap();
+
+                    #[cfg(target_os = "linux")]
+                    let handle = device;
 
                     // AOA stage 1 - determine AOA version
                     let data_stage_1 = get_aoa_version(&handle).unwrap_or_default();
@@ -129,6 +138,9 @@ where
                     // AOA stage 3 - make Android your accessory
                     info!("actually building the AOA device");
                     let _ = make_aoa(&handle);
+                    #[cfg(windows)]
+                    let _ = device.reset();
+                    #[cfg(unix)]
                     let _ = handle.reset();
                 } else {
                     error!("failed to open the device");

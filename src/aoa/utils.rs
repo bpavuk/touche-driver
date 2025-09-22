@@ -1,8 +1,5 @@
 use futures_lite::future::block_on;
-use nusb::{
-    Device, DeviceInfo,
-    transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError},
-};
+use nusb::{Device, DeviceInfo, transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError}, Interface};
 
 const MANUFACTURER_NAME_ID: u16 = 0x00;
 const MODEL_NAME_ID: u16 = 0x01;
@@ -11,7 +8,12 @@ const VERSION_ID: u16 = 0x03;
 const URI_ID: u16 = 0x04;
 const SERIAL_NUMBER_ID: u16 = 0x05;
 
-pub(crate) fn get_aoa_version(handle: &Device) -> Result<Vec<u8>, TransferError> {
+#[cfg(target_os = "linux")]
+type Handle = Device;
+#[cfg(target_os = "windows")]
+type Handle = Interface;
+
+pub(crate) fn get_aoa_version(handle: &Handle) -> Result<Vec<u8>, TransferError> {
     let request = ControlIn {
         control_type: ControlType::Vendor,
         recipient: Recipient::Device,
@@ -23,7 +25,7 @@ pub(crate) fn get_aoa_version(handle: &Device) -> Result<Vec<u8>, TransferError>
     block_on(handle.control_in(request)).into_result()
 }
 
-fn send_str(handle: &Device, string: &str, idx: u16) -> Result<ResponseBuffer, TransferError> {
+fn send_str(handle: &Handle, string: &str, idx: u16) -> Result<ResponseBuffer, TransferError> {
     let request = ControlOut {
         control_type: ControlType::Vendor,
         recipient: Recipient::Device,
@@ -37,7 +39,7 @@ fn send_str(handle: &Device, string: &str, idx: u16) -> Result<ResponseBuffer, T
 }
 
 pub(crate) fn introduce_host(
-    handle: &Device,
+    handle: &Handle,
     manufacturer_name: &str,
     model_name: &str,
     description: &str,
@@ -53,7 +55,7 @@ pub(crate) fn introduce_host(
     let _ = send_str(handle, serial_number, SERIAL_NUMBER_ID);
 }
 
-pub(crate) fn make_aoa(handle: &Device) -> Result<ResponseBuffer, TransferError> {
+pub(crate) fn make_aoa(handle: &Handle) -> Result<ResponseBuffer, TransferError> {
     let request = ControlOut {
         control_type: ControlType::Vendor,
         recipient: Recipient::Device,

@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io;
 
 use crate::data::events::ToucheEvent;
@@ -106,5 +107,21 @@ impl TouchpadDevice {
             return self.device.emit(&trackpad_events);
         }
         Result::Ok(())
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) struct TouchpadDevice {}
+
+#[cfg(target_os = "windows")]
+impl TouchpadDevice {
+    pub(crate) fn new(width: i32, height: i32) -> Result<TouchpadDevice, Box<dyn Error>> {
+        Ok(TouchpadDevice {})
+    }
+
+    pub(crate) fn emit(&self, touche_data: &[ToucheEvent]) -> Result<(), Box<dyn Error>> {
+        // TODO: implement touchpad emulation on Windows
+        
+        Ok(())
     }
 }

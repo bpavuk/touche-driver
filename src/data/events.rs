@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub(crate) enum ToucheEvent {
     Stylus {
         x: i32,

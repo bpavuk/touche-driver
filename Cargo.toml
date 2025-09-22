@@ -18,4 +18,4 @@ thiserror = "2.0.16"
 evdev = "0.13.1"
 
 [target.'cfg(windows)'.dependencies]
-windows = "0.62.0"
+windows = { version = "0.62.0", features = ["UI_Input_Preview_Injection"] }
