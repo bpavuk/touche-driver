@@ -1,5 +1,8 @@
 use futures_lite::future::block_on;
-use nusb::{Device, DeviceInfo, transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError}, Interface};
+use nusb::{
+    Device, DeviceInfo, Interface,
+    transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError},
+};
 
 const MANUFACTURER_NAME_ID: u16 = 0x00;
 const MODEL_NAME_ID: u16 = 0x01;

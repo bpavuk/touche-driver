@@ -1,6 +1,6 @@
 pub(crate) mod utils;
 
-use futures_lite::{future::block_on, stream, AsyncWriteExt};
+use futures_lite::{AsyncWriteExt, future::block_on, stream};
 use log::{debug, error, info};
 use nusb::{
     DeviceInfo, Interface,
@@ -8,8 +8,8 @@ use nusb::{
     transfer::{Direction, RequestBuffer, ResponseBuffer, TransferError},
     watch_devices,
 };
-use utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 use std::time::Duration;
+use utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 
 pub(crate) struct AoaDevice {
     interface: Interface,
@@ -100,7 +100,9 @@ where
                     #[cfg(target_os = "windows")]
                     let handle = device.claim_interface(0);
                     #[cfg(target_os = "windows")]
-                    if handle.is_err() { continue }
+                    if handle.is_err() {
+                        continue;
+                    }
                     #[cfg(target_os = "windows")]
                     let handle = handle.unwrap();
 

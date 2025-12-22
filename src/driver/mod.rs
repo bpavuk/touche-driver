@@ -93,8 +93,12 @@ pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), Box<dyn Error>> {
                 },
             })
             .collect();
-        
-        if let DriverState::Initialized { ref mut tablet, ref mut touchpad } = state {
+
+        if let DriverState::Initialized {
+            ref mut tablet,
+            ref mut touchpad,
+        } = state
+        {
             tablet.emit(&events[..])?;
             touchpad.emit(&events[..])?;
         }

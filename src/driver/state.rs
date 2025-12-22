@@ -3,8 +3,7 @@ use crate::devices::{graphics_tablet::GraphicsTabletDevice, touchpad::TouchpadDe
 pub(crate) enum DriverState {
     Initialized {
         tablet: GraphicsTabletDevice,
-        touchpad: TouchpadDevice
+        touchpad: TouchpadDevice,
     },
-    Uninitialized
+    Uninitialized,
 }
-

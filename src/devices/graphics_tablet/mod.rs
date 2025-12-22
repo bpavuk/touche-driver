@@ -127,7 +127,10 @@ impl GraphicsTabletDevice {
 }
 
 #[cfg(target_os = "windows")]
-use windows::UI::Input::Preview::Injection::{InjectedInputPenInfo, InjectedInputPenParameters, InjectedInputPointerInfo, InjectedInputPointerOptions, InjectedInputVisualizationMode, InputInjector};
+use windows::UI::Input::Preview::Injection::{
+    InjectedInputPenInfo, InjectedInputPenParameters, InjectedInputPointerInfo,
+    InjectedInputPointerOptions, InjectedInputVisualizationMode, InputInjector,
+};
 
 #[cfg(target_os = "windows")]
 pub(crate) struct GraphicsTabletDevice {
@@ -135,7 +138,7 @@ pub(crate) struct GraphicsTabletDevice {
     width: i32,
     height: i32,
     pointer_id: u32, // TODO: get one from Android
-    pointer_state: PointerState
+    pointer_state: PointerState,
 }
 
 #[cfg(target_os = "windows")]
@@ -156,16 +159,16 @@ struct PointerState {
 #[cfg(windows)]
 impl PartialEq for PointerState {
     fn eq(&self, other: &Self) -> bool {
-        self.new_pointer_notified == other.new_pointer_notified &&
-            self.in_range == other.in_range &&
-            self.in_contact == other.in_contact &&
-            self.first_button == other.first_button &&
-            self.second_button == other.second_button &&
-            self.primary == other.primary &&
-            self.confidence == other.confidence &&
-            self.pointer_down == other.pointer_down &&
-            self.pointer_up == other.pointer_up &&
-            self.capture_changed == other.capture_changed
+        self.new_pointer_notified == other.new_pointer_notified
+            && self.in_range == other.in_range
+            && self.in_contact == other.in_contact
+            && self.first_button == other.first_button
+            && self.second_button == other.second_button
+            && self.primary == other.primary
+            && self.confidence == other.confidence
+            && self.pointer_down == other.pointer_down
+            && self.pointer_up == other.pointer_up
+            && self.capture_changed == other.capture_changed
     }
 }
 
@@ -186,32 +189,56 @@ impl PointerState {
         }
     }
 
-    fn calculate_pointer_options(&self, previous_state: PointerState) -> InjectedInputPointerOptions {
-        info!("windows: previous state: {:?}, current state: {:?}", previous_state, self);
-            let mut options = InjectedInputPointerOptions::None;
+    fn calculate_pointer_options(
+        &self,
+        previous_state: PointerState,
+    ) -> InjectedInputPointerOptions {
+        info!(
+            "windows: previous state: {:?}, current state: {:?}",
+            previous_state, self
+        );
+        let mut options = InjectedInputPointerOptions::None;
 
-            if previous_state == *self { options |= InjectedInputPointerOptions::Update; }
+        if previous_state == *self {
+            options |= InjectedInputPointerOptions::Update;
+        }
 
-            // notifying about the new pointer popping up...
-            if !self.new_pointer_notified { options |= InjectedInputPointerOptions::New; }
-            if self.in_range { options |= InjectedInputPointerOptions::InRange; }
-            if self.in_contact { options |= InjectedInputPointerOptions::InContact; }
-            if self.first_button { options |= InjectedInputPointerOptions::FirstButton; }
-            if self.second_button { options |= InjectedInputPointerOptions::SecondButton; }
-            if self.primary { options |= InjectedInputPointerOptions::Primary; }
-            if self.confidence { options |= InjectedInputPointerOptions::Confidence; }
+        // notifying about the new pointer popping up...
+        if !self.new_pointer_notified {
+            options |= InjectedInputPointerOptions::New;
+        }
+        if self.in_range {
+            options |= InjectedInputPointerOptions::InRange;
+        }
+        if self.in_contact {
+            options |= InjectedInputPointerOptions::InContact;
+        }
+        if self.first_button {
+            options |= InjectedInputPointerOptions::FirstButton;
+        }
+        if self.second_button {
+            options |= InjectedInputPointerOptions::SecondButton;
+        }
+        if self.primary {
+            options |= InjectedInputPointerOptions::Primary;
+        }
+        if self.confidence {
+            options |= InjectedInputPointerOptions::Confidence;
+        }
 
-            // if the pointer is down/up, and it was not down/up before, notifying about it
-            if self.pointer_down {
-                options |= InjectedInputPointerOptions::PointerDown;
-            }
-            if self.pointer_up {
-                options |= InjectedInputPointerOptions::PointerUp;
-            }
+        // if the pointer is down/up, and it was not down/up before, notifying about it
+        if self.pointer_down {
+            options |= InjectedInputPointerOptions::PointerDown;
+        }
+        if self.pointer_up {
+            options |= InjectedInputPointerOptions::PointerUp;
+        }
 
-            if self.capture_changed { options |= InjectedInputPointerOptions::CaptureChanged; }
+        if self.capture_changed {
+            options |= InjectedInputPointerOptions::CaptureChanged;
+        }
 
-            options
+        options
     }
 }
 
@@ -222,42 +249,66 @@ impl GraphicsTabletDevice {
         injector.InitializePenInjection(InjectedInputVisualizationMode::Default)?;
 
         let pointer_state = PointerState::new();
-        Ok(GraphicsTabletDevice { input_injector: injector, width, height, pointer_state, pointer_id: 420 })
+        Ok(GraphicsTabletDevice {
+            input_injector: injector,
+            width,
+            height,
+            pointer_state,
+            pointer_id: 420,
+        })
     }
 
     pub(crate) fn emit(&mut self, touche_data: &[ToucheEvent]) -> Result<(), io::Error> {
-        let injector_data_vec: Vec<InjectedInputPenInfo> = touche_data.iter().filter_map(|event| {
-            info!("windows: event: {:?}", event);
-            match event {
-                ToucheEvent::Stylus { x, y, pressed, pressure } => {
-                    let previous_state = self.pointer_state.clone();
+        let injector_data_vec: Vec<InjectedInputPenInfo> = touche_data
+            .iter()
+            .filter_map(|event| {
+                info!("windows: event: {:?}", event);
+                match event {
+                    ToucheEvent::Stylus {
+                        x,
+                        y,
+                        pressed,
+                        pressure,
+                    } => {
+                        let previous_state = self.pointer_state.clone();
 
-                    self.pointer_state.in_range = true;
-                    self.pointer_state.in_contact = *pressed;
-                    self.pointer_state.first_button = *pressed;
-                    self.pointer_state.primary = true;
-                    self.pointer_state.confidence = true;
-                    self.pointer_state.pointer_down = *pressed;
-                    self.pointer_state.pointer_up = !*pressed;
-                    let pointer_options = self.pointer_state.calculate_pointer_options(previous_state);
-                    self.pointer_state.new_pointer_notified = true;
+                        self.pointer_state.in_range = true;
+                        self.pointer_state.in_contact = *pressed;
+                        self.pointer_state.first_button = *pressed;
+                        self.pointer_state.primary = true;
+                        self.pointer_state.confidence = true;
+                        self.pointer_state.pointer_down = *pressed;
+                        self.pointer_state.pointer_up = !*pressed;
+                        let pointer_options =
+                            self.pointer_state.calculate_pointer_options(previous_state);
+                        self.pointer_state.new_pointer_notified = true;
 
-                    let mut pointer_info = InjectedInputPointerInfo::default();
+                        let mut pointer_info = InjectedInputPointerInfo::default();
 
-                    pointer_info.PixelLocation.PositionX = *x;
-                    pointer_info.PixelLocation.PositionY = *y;
-                    pointer_info.PointerOptions = pointer_options;
+                        pointer_info.PixelLocation.PositionX = *x;
+                        pointer_info.PixelLocation.PositionY = *y;
+                        pointer_info.PointerOptions = pointer_options;
 
-                    let pen_info = InjectedInputPenInfo::new().expect("windows: pen info: failed to create pen info");
-                    pen_info.SetPressure(*pressure as f64).expect("windows: pen info: failed to set pressure");
-                    pen_info.SetPenParameters(InjectedInputPenParameters::Pressure).expect("windows: pen info: failed to set pen parameters");
-                    pen_info.SetPointerInfo(pointer_info).expect("windows: pen info: failed to set pointer info");
-                    Some(pen_info)
+                        let pen_info = InjectedInputPenInfo::new()
+                            .expect("windows: pen info: failed to create pen info");
+                        pen_info
+                            .SetPressure(*pressure as f64)
+                            .expect("windows: pen info: failed to set pressure");
+                        pen_info
+                            .SetPenParameters(InjectedInputPenParameters::Pressure)
+                            .expect("windows: pen info: failed to set pen parameters");
+                        pen_info
+                            .SetPointerInfo(pointer_info)
+                            .expect("windows: pen info: failed to set pointer info");
+                        Some(pen_info)
+                    }
+                    ToucheEvent::Touch { .. } => None,
+                    ToucheEvent::Button { .. } => {
+                        None /* not supported on Windows */
+                    }
                 }
-                ToucheEvent::Touch { .. } => { None }
-                ToucheEvent::Button { .. } => { None /* not supported on Windows */ }
-            }
-        }).collect();
+            })
+            .collect();
 
         for injector_data in injector_data_vec {
             let result = self.input_injector.InjectPenInput(Some(&injector_data));

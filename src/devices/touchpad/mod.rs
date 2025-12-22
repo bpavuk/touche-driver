@@ -121,7 +121,7 @@ impl TouchpadDevice {
 
     pub(crate) fn emit(&self, touche_data: &[ToucheEvent]) -> Result<(), Box<dyn Error>> {
         // TODO: implement touchpad emulation on Windows
-        
+
         Ok(())
     }
 }
