@@ -3,11 +3,11 @@ use std::io::Write;
 use chrono::Utc;
 use log::info;
 use touche_lib::aoa::source::AoaSource;
-use touche_lib::aoa::usb_device_listener;
 use touche_lib::devices::graphics_tablet::GraphicsTabletDevice;
 use touche_lib::devices::touchpad::TouchpadDevice;
 use touche_lib::devices::{CombinedSink, DeviceSink};
 use touche_lib::driver::Driver;
+use touche_lib::touche_aoa::usb_device_listener;
 
 fn main() {
     let _ = env_logger::builder()

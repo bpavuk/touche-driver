@@ -1,6 +1,7 @@
 use std::error::Error;
+use touche_aoa::AoaDevice;
+
 use crate::{
-    aoa::AoaDevice,
     data::ToucheData,
     devices::ToucheSource,
 };
