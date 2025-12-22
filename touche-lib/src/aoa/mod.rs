@@ -1,6 +1,6 @@
 pub(crate) mod utils;
 
-use futures_lite::{AsyncWriteExt, future::block_on, stream};
+use futures_lite::{future::block_on, stream};
 use log::{debug, error, info};
 use nusb::{
     DeviceInfo, Interface,
@@ -11,7 +11,7 @@ use nusb::{
 use std::time::Duration;
 use utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 
-pub(crate) struct AoaDevice {
+pub struct AoaDevice {
     interface: Interface,
     in_endpoint_address: u8,
     out_endpoint_address: u8,
@@ -72,7 +72,7 @@ impl AoaDevice {
     }
 }
 
-pub(crate) fn usb_device_listener<T>(callback: T)
+pub fn usb_device_listener<T>(callback: T)
 where
     T: Fn(AoaDevice),
 {

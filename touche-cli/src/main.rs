@@ -1,12 +1,8 @@
-mod aoa;
-mod data;
-mod devices;
-mod driver;
 use std::io::Write;
 
-use aoa::usb_device_listener;
+use touche_lib::aoa::usb_device_listener;
 use chrono::Utc;
-use driver::driver_loop;
+use touche_lib::driver::driver_loop;
 use log::info;
 
 fn main() {

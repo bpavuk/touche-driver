@@ -12,7 +12,7 @@ use crate::{
 use log::{error, info, warn};
 use state::DriverState;
 
-pub(crate) fn driver_loop(aoa_device: AoaDevice) -> Result<(), Box<dyn Error>> {
+pub fn driver_loop(aoa_device: AoaDevice) -> Result<(), Box<dyn Error>> {
     let mut state = DriverState::Uninitialized;
 
     loop {
