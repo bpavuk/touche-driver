@@ -1,6 +1,6 @@
 use futures_lite::future::block_on;
 use nusb::{
-    Device, DeviceInfo, Interface,
+    Device, DeviceInfo,
     transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError},
 };
 

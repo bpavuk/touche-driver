@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub(crate) enum ToucheEvent {
+pub enum ToucheEvent {
     Stylus {
         x: i32,
         y: i32,

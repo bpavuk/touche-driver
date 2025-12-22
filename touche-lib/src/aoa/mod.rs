@@ -1,4 +1,5 @@
 pub(crate) mod utils;
+pub mod source;
 
 use futures_lite::{future::block_on, stream};
 use log::{debug, error, info};
