@@ -14,10 +14,10 @@ fn main() {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "{}|{}|{}: {}",
+                "{} | {} | {} : {}",
                 Utc::now().format("%Y-%m-%d %H:%M:%S.%3f"),
-                record.module_path().unwrap_or("NO_MODULE"),
                 record.level(),
+                record.module_path().unwrap_or("NO_MODULE"),
                 record.args()
             )
         })
