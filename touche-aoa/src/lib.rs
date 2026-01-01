@@ -1,14 +1,18 @@
 pub(crate) mod utils;
 
-use futures_lite::{future::block_on, stream};
+use futures_lite::stream;
 use log::{debug, error, info};
 use nusb::{
-    DeviceInfo, Interface,
+    DeviceInfo, Interface, MaybeFuture,
     hotplug::HotplugEvent,
-    transfer::{Direction, RequestBuffer, ResponseBuffer, TransferError},
+    transfer::{Bulk, Direction, In, Out},
     watch_devices,
 };
-use std::{error::Error, io, time::Duration};
+use std::{
+    error::Error,
+    io::{self, Read, Write},
+    time::Duration,
+};
 use utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 
 pub struct AoaDevice {
@@ -20,13 +24,13 @@ pub struct AoaDevice {
 impl AoaDevice {
     pub fn new(aoa_device_info: DeviceInfo) -> Result<AoaDevice, Box<dyn Error>> {
         info!("attempting to open the AOA device...");
-        let device = aoa_device_info.open().map_err(|_| {
+        let device = aoa_device_info.open().wait().map_err(|_| {
             error!("failed to open the AOA device!");
 
             io::Error::other("failed to open the AOA device!")
         })?;
         info!("attempting to claim the interface...");
-        let interface = device.claim_interface(0).map_err(|e| {
+        let interface = device.claim_interface(0).wait().map_err(|e| {
             error!("failed to claim the interface!");
             dbg!(e);
 
@@ -72,13 +76,40 @@ impl AoaDevice {
         })
     }
 
-    pub fn read(&self) -> Result<Vec<u8>, TransferError> {
-        let buffer = RequestBuffer::new(16384);
-        block_on(self.interface.bulk_in(self.in_endpoint_address, buffer)).into_result()
+    pub fn read(&self) -> Result<Vec<u8>, std::io::Error> {
+        info!("reading...");
+        let mut buf = Vec::new();
+        // let timeout = Duration::new(1, 0);
+        let mut reader = self
+            .interface
+            .endpoint::<Bulk, In>(self.in_endpoint_address)?
+            .reader(256)
+            .with_num_transfers(1);
+
+         let mut reader_pkt = reader.until_short_packet();
+        // .with_read_timeout(timeout);
+
+        reader_pkt.read_to_end(&mut buf)?;
+        reader_pkt.consume_end().map_err(|_| {
+            std::io::Error::new(io::ErrorKind::InvalidData, "expected short packet")
+        })?;
+
+        info!("done reading");
+
+        Ok(buf)
     }
 
-    pub fn write(&self, data: Vec<u8>) -> Result<ResponseBuffer, TransferError> {
-        block_on(self.interface.bulk_out(self.out_endpoint_address, data)).into_result()
+    pub fn write(&self, data: Vec<u8>) -> Result<(), std::io::Error> {
+        info!("writing...");
+
+        let mut writer = self
+            .interface
+            .endpoint::<Bulk, Out>(self.out_endpoint_address)?
+            .writer(16834);
+
+        writer.write_all(&data)?;
+
+        Ok(())
     }
 }
 
@@ -104,7 +135,7 @@ where
                 callback(aoa_device);
             } else {
                 info!("searching for Android device...");
-                if let Ok(device) = device_info.open() {
+                if let Ok(device) = device_info.open().wait() {
                     std::thread::sleep(Duration::from_millis(500));
 
                     #[cfg(target_os = "windows")]

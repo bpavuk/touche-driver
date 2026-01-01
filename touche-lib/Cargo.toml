@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 futures-lite = "2.6.0"
 mio = "1.0.3"
-nusb = "0.1.13"
 env_logger = "0.11.8"
 log = "0.4.29"
 chrono = "0.4.42"

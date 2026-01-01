@@ -1,7 +1,8 @@
-use futures_lite::future::block_on;
+use std::time::Duration;
+
 use nusb::{
-    Device, DeviceInfo,
-    transfer::{ControlIn, ControlOut, ControlType, Recipient, ResponseBuffer, TransferError},
+    Device, DeviceInfo, MaybeFuture,
+    transfer::{ControlIn, ControlOut, ControlType, Recipient, TransferError},
 };
 
 const MANUFACTURER_NAME_ID: u16 = 0x00;
@@ -25,10 +26,11 @@ pub(crate) fn get_aoa_version(handle: &Handle) -> Result<Vec<u8>, TransferError>
         index: 0,
         length: 16,
     };
-    block_on(handle.control_in(request)).into_result()
+    let timeout = Duration::new(10, 0);
+    handle.control_in(request, timeout).wait()
 }
 
-fn send_str(handle: &Handle, string: &str, idx: u16) -> Result<ResponseBuffer, TransferError> {
+fn send_str(handle: &Handle, string: &str, idx: u16) -> Result<(), TransferError> {
     let request = ControlOut {
         control_type: ControlType::Vendor,
         recipient: Recipient::Device,
@@ -37,8 +39,8 @@ fn send_str(handle: &Handle, string: &str, idx: u16) -> Result<ResponseBuffer, T
         data: string.as_bytes(),
         index: idx,
     };
-
-    block_on(handle.control_out(request)).into_result()
+    let timeout = Duration::new(10, 0);
+    handle.control_out(request, timeout).wait()
 }
 
 pub(crate) fn introduce_host(
@@ -58,7 +60,7 @@ pub(crate) fn introduce_host(
     let _ = send_str(handle, serial_number, SERIAL_NUMBER_ID);
 }
 
-pub(crate) fn make_aoa(handle: &Handle) -> Result<ResponseBuffer, TransferError> {
+pub(crate) fn make_aoa(handle: &Handle) -> Result<(), TransferError> {
     let request = ControlOut {
         control_type: ControlType::Vendor,
         recipient: Recipient::Device,
@@ -67,8 +69,8 @@ pub(crate) fn make_aoa(handle: &Handle) -> Result<ResponseBuffer, TransferError>
         index: 0,
         data: &[],
     };
-
-    block_on(handle.control_out(request)).into_result()
+    let timeout = Duration::new(10, 0);
+    handle.control_out(request, timeout).wait()
 }
 
 pub(crate) fn is_aoa(info: &DeviceInfo) -> bool {
