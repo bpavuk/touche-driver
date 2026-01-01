@@ -5,7 +5,7 @@ use log::info;
 use touche_lib::aoa::source::AoaSource;
 use touche_lib::devices::graphics_tablet::GraphicsTabletDevice;
 use touche_lib::devices::touchpad::TouchpadDevice;
-use touche_lib::devices::{CombinedSink, DeviceSink};
+use touche_lib::devices::DeviceSink;
 use touche_lib::driver::Driver;
 use touche_lib::touche_aoa::usb_device_listener;
 
@@ -23,7 +23,7 @@ fn main() {
         })
         .try_init();
     usb_device_listener(|aoa_device| {
-        info!("AOA device detected. Starting the refactored driver...");
+        info!("AOA device detected. Starting the driver...");
 
         let aoa_source = AoaSource::new(aoa_device);
         let tablet_sink = GraphicsTabletDevice::new_uninit();

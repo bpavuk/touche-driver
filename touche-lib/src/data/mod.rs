@@ -1,4 +1,3 @@
-pub mod errors;
 pub(crate) mod events;
 
 use serde::{Deserialize, Serialize};
