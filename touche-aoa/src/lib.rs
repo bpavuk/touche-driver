@@ -15,6 +15,31 @@ use std::{
 };
 use utils::{get_aoa_version, introduce_host, is_aoa, make_aoa};
 
+#[derive(thiserror::Error, Debug)]
+pub enum DeviceInitError {
+    #[error("failed to open the AOA device!")]
+    FailedToOpenDevice,
+    #[error("failed to claim the interface!")]
+    FailedToClaimInterface(nusb::Error),
+    #[error("no {:?} endpoints found!", kind)]
+    NoEndpointsFound { kind: EndpointKind },
+}
+
+#[derive(Debug)]
+pub enum EndpointKind {
+    In,
+    Out,
+}
+
+impl From<EndpointKind> for String {
+    fn from(value: EndpointKind) -> Self {
+        match value {
+            EndpointKind::In => "in".to_string(),
+            EndpointKind::Out => "out".to_string(),
+        }
+    }
+}
+
 pub struct AoaDevice {
     interface: Interface,
     in_endpoint_address: u8,
@@ -22,19 +47,19 @@ pub struct AoaDevice {
 }
 
 impl AoaDevice {
-    pub fn new(aoa_device_info: DeviceInfo) -> Result<AoaDevice, Box<dyn Error>> {
+    pub fn new(aoa_device_info: DeviceInfo) -> Result<AoaDevice, DeviceInitError> {
         info!("attempting to open the AOA device...");
         let device = aoa_device_info.open().wait().map_err(|_| {
             error!("failed to open the AOA device!");
 
-            io::Error::other("failed to open the AOA device!")
+            DeviceInitError::FailedToOpenDevice
         })?;
         info!("attempting to claim the interface...");
         let interface = device.claim_interface(0).wait().map_err(|e| {
             error!("failed to claim the interface!");
-            dbg!(e);
+            dbg!(&e);
 
-            io::Error::other("failed to claim the interface!")
+            DeviceInitError::FailedToClaimInterface(e)
         })?;
 
         let binding = interface.clone();
@@ -51,10 +76,9 @@ impl AoaDevice {
         let in_endpoint = match in_endpoint {
             Some(endpoint) => endpoint,
             None => {
-                return Err(Box::new(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "No in endpoints found.",
-                )));
+                return Err(DeviceInitError::NoEndpointsFound {
+                    kind: EndpointKind::In,
+                });
             }
         };
         let out_endpoint = endpoints
@@ -63,10 +87,9 @@ impl AoaDevice {
         let out_endpoint = match out_endpoint {
             Some(endpoint) => endpoint,
             None => {
-                return Err(Box::new(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "No out endpoints found.",
-                )));
+                return Err(DeviceInitError::NoEndpointsFound {
+                    kind: EndpointKind::Out,
+                });
             }
         };
         Ok(AoaDevice {
@@ -86,7 +109,7 @@ impl AoaDevice {
             .reader(256)
             .with_num_transfers(1);
 
-         let mut reader_pkt = reader.until_short_packet();
+        let mut reader_pkt = reader.until_short_packet();
         // .with_read_timeout(timeout);
 
         reader_pkt.read_to_end(&mut buf)?;
@@ -113,11 +136,12 @@ impl AoaDevice {
     }
 }
 
-pub fn usb_device_listener<T>(callback: T)
+pub fn usb_device_listener<T>(callback: T) -> Result<(), Box<dyn Error>>
 where
-    T: Fn(AoaDevice),
+    T: Fn(Result<AoaDevice, DeviceInitError>),
 {
-    for event in stream::block_on(watch_devices().unwrap()) {
+    let watch = watch_devices()?;
+    for event in stream::block_on(watch) {
         info!("new USB device connected");
         if let HotplugEvent::Connected(device_info) = event {
             std::thread::sleep(Duration::from_millis(100));
@@ -127,12 +151,12 @@ where
             if is_aoa(&device_info) {
                 let aoa_device = match AoaDevice::new(device_info) {
                     Ok(device) => device,
-                    Err(_) => {
-                        error!("failed to create AOA device!");
+                    Err(e) => {
+                        callback(Err(e));
                         continue;
                     }
                 };
-                callback(aoa_device);
+                callback(Ok(aoa_device));
             } else {
                 info!("searching for Android device...");
                 if let Ok(device) = device_info.open().wait() {
@@ -145,7 +169,7 @@ where
                         continue;
                     }
                     #[cfg(target_os = "windows")]
-                    let handle = handle.unwrap();
+                    let handle = handle.unwrap("ШINDOWS MOMENT");
 
                     #[cfg(target_os = "linux")]
                     let handle = device;
@@ -187,9 +211,12 @@ where
                     let _ = handle.reset();
                 } else {
                     error!("failed to open the device");
+                    callback(Err(DeviceInitError::FailedToOpenDevice));
                     continue;
                 }
             }
         }
     }
+
+    Ok(())
 }

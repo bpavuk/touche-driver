@@ -19,7 +19,7 @@ impl AoaSource {
 impl ToucheSource for AoaSource {
     fn blocking_read(&mut self) -> Result<Vec<ToucheData>, Box<dyn Error>> {
         let raw = self.aoa_device.read()?;
-        let data: Vec<ToucheData> = serde_cbor::from_slice(&raw[..]).unwrap();
+        let data: Vec<ToucheData> = serde_cbor::from_slice(&raw[..])?;
 
         Ok(data)
     }

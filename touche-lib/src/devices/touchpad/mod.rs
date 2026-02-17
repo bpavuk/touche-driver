@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Error};
 
 use crate::{data::events::ToucheEvent, devices::DeviceSink};
 
@@ -72,7 +72,13 @@ impl DeviceSink for TouchpadDevice {
                 *KeyEvent::new(KeyCode::BTN_TOOL_QUADTAP, (finger_count == 4).into()),
                 *KeyEvent::new(KeyCode::BTN_TOOL_QUINTTAP, (finger_count == 5).into()),
             ]);
-            return self.device.as_mut().unwrap().emit(&trackpad_events);
+            if let Some(device) = self.device.as_mut() {
+                return device.emit(&trackpad_events);
+            } else {
+                return Err(Error::other(
+                    "device is uninitialized. initialize the device first.",
+                ));
+            }
         }
         Result::Ok(())
     }

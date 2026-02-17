@@ -1,13 +1,13 @@
 use std::io::Write;
 
 use chrono::Utc;
-use log::info;
+use log::{error, info};
 use touche_lib::aoa::source::AoaSource;
 use touche_lib::devices::graphics_tablet::GraphicsTabletDevice;
 use touche_lib::devices::touchpad::TouchpadDevice;
 use touche_lib::devices::DeviceSink;
 use touche_lib::driver::Driver;
-use touche_lib::touche_aoa::usb_device_listener;
+use touche_lib::touche_aoa::{usb_device_listener, AoaDevice};
 
 fn main() {
     let _ = env_logger::builder()
@@ -22,7 +22,15 @@ fn main() {
             )
         })
         .try_init();
-    usb_device_listener(|aoa_device| {
+    let result = usb_device_listener(|aoa_device_result| {
+        let aoa_device: AoaDevice = match aoa_device_result {
+            Ok(dev) => dev,
+            Err(e) => {
+                error!("{}", e);
+                return;
+            },
+        };
+
         info!("AOA device detected. Starting the driver...");
 
         let aoa_source = AoaSource::new(aoa_device);
@@ -44,4 +52,9 @@ fn main() {
             }
         }
     });
+
+    error!("the driver exited unnaturally!");
+    if let Err(e) = result {
+        error!("{}", e);
+    }
 }

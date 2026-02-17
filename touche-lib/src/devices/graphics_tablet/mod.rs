@@ -3,7 +3,7 @@ use std::cmp::PartialEq;
 #[cfg(target_os = "windows")]
 use std::error::Error;
 
-use std::io;
+use std::io::{self, Error};
 
 use crate::{data::events::ToucheEvent, devices::DeviceSink};
 
@@ -89,7 +89,13 @@ impl DeviceSink for GraphicsTabletDevice {
             }
         }
         if !tablet_events.is_empty() {
-            return self.device.as_mut().unwrap().emit(&tablet_events);
+            if let Some(device) = self.device.as_mut() {
+                return device.emit(&tablet_events);
+            } else {
+                return Err(Error::other(
+                    "device is uninitialized. initialize the device first.",
+                ));
+            }
         }
         Result::Ok(())
     }
