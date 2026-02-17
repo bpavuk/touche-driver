@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 touche-lib = { path = "../touche-lib" }
-chrono = "0.4.42"
+chrono = "0.4.43"
 log = "0.4.29"
-env_logger = "0.11.8"
+env_logger = "0.11.9"
