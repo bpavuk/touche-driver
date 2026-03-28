@@ -101,27 +101,27 @@ impl DeviceSink for TouchpadDevice {
             .with_keys(&touchepad_keys)?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_MT_SLOT,
-                AbsInfo::new(0, 0, 10, 0, 0, 100),
+                AbsInfo::new(0, 0, 10, 8, 0, 50),
             ))?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_MT_TRACKING_ID,
-                AbsInfo::new(0, 0, 65535, 0, 0, 100),
+                AbsInfo::new(0, 0, 65535, 8, 0, 50),
             ))?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_MT_POSITION_X,
-                AbsInfo::new(0, 0, width, 0, 0, 100),
+                AbsInfo::new(0, 0, width, 8, 0, 50),
             ))?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_MT_POSITION_Y,
-                AbsInfo::new(0, 0, height, 0, 0, 100),
+                AbsInfo::new(0, 0, height, 8, 0, 50),
             ))?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_X,
-                AbsInfo::new(0, 0, width, 0, 0, 100),
+                AbsInfo::new(0, 0, width, 8, 0, 50),
             ))?
             .with_absolute_axis(&UinputAbsSetup::new(
                 AbsoluteAxisCode::ABS_Y,
-                AbsInfo::new(0, 0, height, 0, 0, 100),
+                AbsInfo::new(0, 0, height, 8, 0, 50),
             ))?
             .input_id(InputId::new(BusType::BUS_USB, 0x5120, 0x0002, 0x1))
             .build()?;
