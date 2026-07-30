@@ -1,4 +1,5 @@
-/target
 /.direnv
-/result
 .aider*
+/zig-out
+/.zig-pkgs
+/.zig-cache/
