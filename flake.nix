@@ -11,8 +11,17 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        nativeBuildInputs = with pkgs; [ pkg-config zigpkgs."0.16.0" zls ];
-        buildInputs = with pkgs; [ systemd ];
+        nativeBuildInputs = with pkgs; [ 
+          pkg-config 
+          zigpkgs."0.16.0" 
+          zls 
+          linuxHeaders 
+          glibc.dev 
+        ];
+        buildInputs = with pkgs; [ 
+          libusb1.dev
+          libevdev
+        ];
       in
       with pkgs;
       {
@@ -23,6 +32,8 @@
         devShells.default = mkShell {
           buildInputs = buildInputs;
           nativeBuildInputs = nativeBuildInputs;
+
+          LD_LIBRARY_PATH = lib.makeLibraryPath (nativeBuildInputs ++ buildInputs);
         };
       }
     );

@@ -1,71 +1,146 @@
 const std = @import("std");
-const Io = std.Io;
 
-const driver_zig = @import("driver_zig");
+const AoaDevice = @import("aoa.zig");
+const data = @import("data.zig");
+const cbor = @import("cbor");
+const devices = @import("devices.zig");
+const libusb = @import("libusb.zig");
+const log = std.log.scoped(.Main);
 
 pub fn main(init: std.process.Init) !void {
-    // Prints to stderr, unbuffered, ignoring potential errors.
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var libusbContext = try libusb.Context.init();
+    defer libusbContext.deinit();
+    try startDriver(&libusbContext, init.gpa, init.io);
+}
 
-    // This is appropriate for anything that lives as long as the process.
-    const arena: std.mem.Allocator = init.arena.allocator();
+fn uinputFuckery(alloc: std.mem.Allocator, io: std.Io) !void {
+    const device = try devices.TabletDevice.init(alloc, io, 1920, 1080);
+    defer device.deinit(alloc, io);
 
-    // Accessing command line arguments:
-    const args = try init.minimal.args.toSlice(arena);
-    for (args) |arg| {
-        std.log.info("arg: {s}", .{arg});
+    device.emit(.{ .Action = .Init }, io);
+}
+
+const DriverState = struct {
+    const Self = @This();
+
+    tablet: ?devices.TabletDevice,
+    touchpad: ?devices.TouchpadDevice,
+
+    fn deinit(self: *Self) void {
+        if (self.tablet) |tab| {
+            tab.deinit();
+        }
     }
+};
 
-    // In order to do I/O operations need an `Io` instance.
-    const io = init.io;
+fn startDriver(ctx: *libusb.Context, alloc: std.mem.Allocator, io: std.Io) !void {
+    const aoa = try AoaDevice.init(ctx, alloc, io);
+    defer aoa.deinit();
 
-    // Stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
-    const stdout_writer = &stdout_file_writer.interface;
-
-    try driver_zig.printAnotherMessage(stdout_writer);
-
-    try stdout_writer.flush(); // Don't forget to flush!
-}
-
-test "simple test" {
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(i32) = .empty;
-    defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(gpa, 42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    try std.testing.fuzz({}, testOne, .{});
-}
-
-fn testOne(context: void, smith: *std.testing.Smith) !void {
-    _ = context;
-    // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(u8) = .empty;
-    defer list.deinit(gpa);
-    while (!smith.eos()) switch (smith.value(enum { add_data, dup_data })) {
-        .add_data => {
-            const slice = try list.addManyAsSlice(gpa, smith.value(u4));
-            smith.bytes(slice);
-        },
-        .dup_data => {
-            if (list.items.len == 0) continue;
-            if (list.items.len > std.math.maxInt(u32)) return error.SkipZigTest;
-            const len = smith.valueRangeAtMost(u32, 1, @min(32, list.items.len));
-            const off = smith.valueRangeAtMost(u32, 0, @intCast(list.items.len - len));
-            try list.appendSlice(gpa, list.items[off..][0..len]);
-            try std.testing.expectEqualSlices(
-                u8,
-                list.items[off..][0..len],
-                list.items[list.items.len - len ..],
-            );
-        },
+    var state: DriverState = .{
+        .tablet = null,
+        .touchpad = null,
     };
+
+    while (true) {
+        log.debug("waiting for AOA device to be connected...", .{});
+        try aoa.waitForDevice();
+        log.debug("AOA device connected. starting the driver loop...", .{});
+
+        var rxBuffer: [512]u8 = undefined;
+        var fbaBuffer: [4096]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&fbaBuffer);
+        while (true) {
+            defer fba.reset();
+            const bytesRead = aoa.read(&rxBuffer, 1000) catch |err| switch (err) {
+                error.Timeout => continue,
+                error.Disconnected => {
+                    log.debug("device disconnnected", .{});
+                    break;
+                },
+                else => return err,
+            };
+            log.debug("received {d} bytes from Android", .{bytesRead});
+
+            if (!(try cbor.match(rxBuffer[0..bytesRead], cbor.array))) {
+                log.err("Invalid data received. Expected CBOR array.", .{});
+                continue;
+            }
+            // from now on we know this is an array
+
+            // 1. find out array's size
+            var iter: []const u8 = rxBuffer[0..bytesRead];
+            const header = try cbor.decodeArrayHeader(&iter);
+            if (header >= 20) {
+                log.err("The driver supports maximum 20 input events at a time, e.g. 20 fingers. Skipping.", .{});
+                continue;
+            }
+
+            // 2. iterate over an array
+            var list = try std.ArrayList(data.ToucheInput).initCapacity(fba.allocator(), header);
+            errdefer list.deinit(fba.allocator());
+
+            var i: usize = 0;
+            while (i < header) : (i += 1) {
+                // 3. deserialize ToucheEventSerialized
+                var raw: data.ToucheInputSerialized = undefined;
+                const matched = try cbor.match(iter, cbor.extract(&raw));
+                try cbor.skipValue(&iter);
+                if (!matched) {
+                    log.err("One of events is not valid touché input.", .{});
+                    continue;
+                }
+                // 4. write them into an ArrayList
+                list.appendAssumeCapacity(raw.deserialize());
+            }
+
+            const events = list.toOwnedSliceAssert();
+            try emitDriverEvents(&state, alloc, io, events);
+        }
+    }
+}
+
+fn emitDriverEvents(
+    state: *DriverState,
+    alloc: std.mem.Allocator,
+    io: std.Io,
+    events: []data.ToucheInput,
+) !void {
+    if (state.touchpad) |touchpad| {
+        touchpad.emit(events);
+    }
+    if (state.tablet) |tablet| {
+        tablet.emit(events);
+    }
+    for (events) |event| {
+        switch (event) {
+            .Action => |value| switch (value) {
+                .Init => {
+                    if (state.touchpad) |touchpad| {
+                        touchpad.deinit(alloc);
+                    }
+                    if (state.tablet) |tablet| {
+                        tablet.deinit(alloc);
+                    }
+                    state.touchpad = null;
+                    state.tablet = null;
+                    break;
+                },
+            },
+            .Screen => |value| {
+                if (state.touchpad) |touchpad| {
+                    touchpad.deinit(alloc);
+                }
+                if (state.tablet) |tablet| {
+                    tablet.deinit(alloc);
+                }
+
+                state.tablet = try .init(alloc, io, value.x, value.y);
+                errdefer state.tablet.?.deinit(alloc);
+                state.touchpad = try .init(alloc, io, value.x, value.y);
+                break;
+            },
+            else => {},
+        }
+    }
 }

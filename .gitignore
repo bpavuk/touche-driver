@@ -1,5 +1,5 @@
 /.direnv
-.aider*
 /zig-out
-/.zig-pkgs
+/zig-pkg
 /.zig-cache/
+/.zig-global-cache/
