@@ -66,6 +66,13 @@ pub fn build(b: *std.Build) void {
     // by passing `--prefix` or `-p`.
     b.installArtifact(exeDriverCli);
 
+    const dvuiDep = b.dependency("dvui", .{
+        .target = target,
+        .optimize = optimize,
+        .backend = .sdl3,
+    });
+    const dvui = dvuiDep.module("dvui_sdl3");
+
     const exeDriverDesktop = b.addExecutable(.{
         .name = "touche-desktop",
         .root_module = b.createModule(.{
@@ -74,7 +81,9 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "driverLib", .module = driverLib },
-            }
+                .{ .name = "dvui", .module = dvui },
+                .{ .name = "dvui-sdlBackend", .module = dvuiDep.module("sdl3") },
+            },
         }),
     });
 

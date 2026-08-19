@@ -21,6 +21,24 @@
         buildInputs = with pkgs; [ 
           libusb1.dev
           libevdev
+
+          # DVUI dependencies
+          libGLX
+          libx11
+          libxcursor
+          libxext
+          libxfixes
+          libxi
+          libxinerama
+          libxrandr
+          libxrender
+          udev
+          wayland
+          vulkan-loader
+          alsa-lib
+          libdecor
+          libxkbcommon
+          dbus
         ];
       in
       with pkgs;
