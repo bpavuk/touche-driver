@@ -1,24 +1,13 @@
 const std = @import("std");
-
-const AoaDevice = @import("aoa.zig");
-const data = @import("data.zig");
-const cbor = @import("cbor");
 const devices = @import("devices.zig");
 const libusb = @import("libusb.zig");
-const log = std.log.scoped(.Main);
+const data = @import("data.zig");
+const cbor = @import("cbor");
 
-pub fn main(init: std.process.Init) !void {
-    var libusbContext = try libusb.Context.init();
-    defer libusbContext.deinit();
-    try startDriver(&libusbContext, init.gpa, init.io);
-}
+const AoaDevice = @import("aoa.zig");
 
-fn uinputFuckery(alloc: std.mem.Allocator, io: std.Io) !void {
-    const device = try devices.TabletDevice.init(alloc, io, 1920, 1080);
-    defer device.deinit(alloc, io);
+const log = std.log.scoped(.Lib);
 
-    device.emit(.{ .Action = .Init }, io);
-}
 
 const DriverState = struct {
     const Self = @This();
@@ -33,8 +22,10 @@ const DriverState = struct {
     }
 };
 
-fn startDriver(ctx: *libusb.Context, alloc: std.mem.Allocator, io: std.Io) !void {
-    const aoa = try AoaDevice.init(ctx, alloc, io);
+pub fn startDriver(alloc: std.mem.Allocator, io: std.Io) !void {
+    var ctx = try libusb.Context.init();
+    defer ctx.deinit();
+    const aoa = try AoaDevice.init(&ctx, alloc, io);
     defer aoa.deinit();
 
     var state: DriverState = .{
