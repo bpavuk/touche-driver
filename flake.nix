@@ -13,7 +13,7 @@
         };
         nativeBuildInputs = with pkgs; [ 
           pkg-config 
-          zigpkgs."0.16.0" 
+          zigpkgs."0.16.0"
           zls 
           linuxHeaders 
           glibc.dev 
